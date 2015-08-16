@@ -141,16 +141,17 @@ for item in pdb_list:
 #place water inside the cylinder
 #Note that the cylinder's axis is aligned along the x direction
 
+"""
 #put water on lattice
 #determin the size of the lattice
 v_cylinder = 2.0*pi*r_inner*Lx/float(nwater_inside)
 r_cell = v_cylinder**(1.0/3.0)
 
-n_side = int(2.0*r_inner/r_cell)+2
+n_side = int(2.0*r_inner/r_cell)*2
 
 r_cell = 2.0*r_inner/float(n_side)
 
-n_side_x = int(Lx/r_cell)
+n_side_x = int(Lx/r_cell)*2
 
 iwater=0
 
@@ -199,7 +200,51 @@ if iwater<nwater_inside:
                %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz) 
        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0) 
 #       rwater_inside.append([xxx,yyy,zzz])
+"""
 
+#try a different way of putting water inside the cylinder
+d_water = 0.47  # diameter of martini water
+iwater=0
+r_yz = 0.0
+n_side_x = int(Lx/d_water) + 1
+dx = Lx/float(n_side_x)
+r_inner_old = r_inner
+while iwater<nwater_inside:
+      r_yz+=d_water
+      #update r_inner if water domain exceeds original r_inner
+      if r_yz>r_inner:
+         r_inner = r_yz
+      l_ring = 2.0*pi*r_yz
+      nw_ring = int(l_ring/d_water)
+      dphi = 2.0*pi/nw_ring
+      for i in range(0,nw_ring):
+          phi = dphi*float(i)
+          yyy = r_yz*cos(phi)
+          zzz = r_yz*sin(phi)
+          for j in range(0,n_side_x):
+             xxx = dx*float(j)
+             if iwater<nwater_inside:
+              iwater+=1
+              res_num+=1
+              atm_num+=1
+              atm_name='W'
+              resname='W'
+              #gromacs only allow 5 digits for residue number and atom number
+              res_num_print=res_num%100000
+              atm_num_print=atm_num%100000
+              print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+              %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+              print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0) 
+              
+          
+       
+#reset r_outer
+r_outer_old = r_outer
+if r_inner!=r_inner_old:
+   r_outer = r_outer + (r_inner - r_inner_old)
+   print "r_inner reset to %f" %r_innner   
+   print "r_outer reset to %f" %r_innner  
+ 
 #put lipids in the inner leaflet on the grids
 #get the total number of lipids in the inner leaflet
 n_lipid_inner=0
@@ -366,8 +411,9 @@ for i in range(0,n_side_x):
             #print it to the gro file 
             print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
             %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
-            print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0) 
-
+            print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
+ 
+"""
 #now, put water outside the cylinder
 #this is similar to the algorithm of putting water outside cylindrical pore 
 #put water on lattice
@@ -375,11 +421,11 @@ for i in range(0,n_side_x):
 v_cylinder = (Lx*Lz*Lz-2.0*pi*r_outer*Lx)/float(nwater_outside)
 r_cell = v_cylinder**(1.0/3.0)
 
-n_side = int(Lz/r_cell)+2
+n_side = int(Lz/r_cell)*2
 
 r_cell = Lz/float(n_side)
 
-n_side_x = int(Lx/r_cell)+2
+n_side_x = int(Lx/r_cell)*2
 
 iwater=0
 
@@ -436,7 +482,45 @@ if iwater<nwater_outside:
                %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz) 
        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0) 
 #         rwater_outside.append([xxx,yyy,zzz])
+"""
+#try a different way of putting water outside the cylinder
+iwater=0
+n_side_x = int(Lx/d_water) + 1
+dx = Lx/float(n_side_x)
+r_yz = r_outer
+Lz_old = Lz 
+while iwater<nwater_outside:
+      r_yz+=d_water
+      #update Lz if water domain exceeds original Lz
+      if r_yz>Lz/2.0:
+         Lz=r_yz*2.0
+      l_ring = 2.0*pi*r_yz
+      nw_ring = int(l_ring/d_water)
+      dphi = 2.0*pi/nw_ring
+      for i in range(0,nw_ring):
+          phi = dphi*float(i)
+          yyy = r_yz*cos(phi)
+          zzz = r_yz*sin(phi)
+          for j in range(0,n_side_x):
+             xxx = dx*float(j)
+             if iwater<nwater_outside:
+              iwater+=1
+          #    print "iwater = %d" %iwater
+              res_num+=1
+              atm_num+=1
+              atm_name='W'
+              resname='W'
+              #gromacs only allow 5 digits for residue number and atom number
+              res_num_print=res_num%100000
+              atm_num_print=atm_num%100000
+              print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+              %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+              print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
 
+if Lz!=Lz_old:
+   print "Lz updated to %f" %Lz 
+              
+          
 #place sodium and chloride in the box randomly
 for i in range(0,nNa):
        xxx = random.uniform(0.0,Lx)
