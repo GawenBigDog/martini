@@ -101,6 +101,20 @@ h = open("test.xyz",'w')
 print>>h, "%d" %n_tot
 print>>h, "test"
 
+# write the top file
+topfile = open("system_cap.top",'w')
+header='''#include "martini_v2.0.itp"
+#include "martini_v2.0_lipids.itp"
+#include "martini_v2.0_DPGS_01.itp"
+#include "martini_v2.0_ions.itp"
+#include "martini_chol_hinge_p30.itp"
+
+[ system ]
+myelin tube
+
+[ molecules ]'''
+print>>topfile, "%s" %header
+
 res_num=0
 atm_num=0
 
@@ -148,6 +162,8 @@ for item in pdb_list:
 #place water inside the cylinder
 #Note that the cylinder's axis is aligned along the x direction
 
+# print to top
+print>>topfile, "%-5s  %d" %('W',nwater_inside)
 
 #try a different way of putting water inside the cylinder
 d_water = 0.47  # diameter of martini water
@@ -183,14 +199,15 @@ while iwater<nwater_inside:
               %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
               print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0) 
               
-          
+ # increase r_inner by 0.5 nm to avoid steric clash with lipid
+r_inner+=0.5         
        
 #reset r_outer
 r_outer_old = r_outer
 if r_inner!=r_inner_old:
    r_outer = r_outer + (r_inner - r_inner_old)
-   print "r_inner reset to %f" %r_innner   
-   print "r_outer reset to %f" %r_innner  
+   print "r_inner reset to %f" %r_inner   
+   print "r_outer reset to %f" %r_outer  
  
 #put lipids in the inner leaflet on the grids
 #get the total number of lipids in the inner leaflet
@@ -220,6 +237,9 @@ while icount<n_lipid_inner:
               lipid_index.append(j)
               icount+=1
 
+# print to top
+for j in range(0,n_type_lipid):
+    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][1])
 
 print "icount = %d" %icount
 print "n_lipid_inner = %d" %n_lipid_inner
@@ -311,6 +331,10 @@ while icount<n_lipid_outer:
               lipid_index.append(j)
               icount+=1
 
+# print to top
+for j in range(0,n_type_lipid):
+    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][2])
+
 #determine the lattice size
 cell_outer = sqrt(r_outer*2.0*pi*Lx/float(n_lipid_outer))
 n_side_x = int(Lx/cell_outer) + 1
@@ -395,6 +419,10 @@ while icount<n_lipid_cap_outer:
               lipid_index.append(j)
               icount+=1
 
+# print to top
+for j in range(0,n_type_lipid):
+    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][4])
+
 
 icount=0
 for i in range(0,nbinphi_cap_outer):
@@ -417,10 +445,13 @@ for i in range(0,nbinphi_cap_outer):
          eu_theta = acos(-lipid_axial[2])
          eu_chi = atan2(lipid_axial[0],lipid_axial[1])
          # the third Euler angle is not important, take random value
-         eu_phi = random.uniform(0,2.0*pi) 
+#         eu_phi = random.uniform(0,2.0*pi) 
+         eu_phi = 0.25*pi 
          # put the positive half sphere to the other size of the tube
          if xxx_head>0.0:
-            xxx_head+=Lx
+            xxx_head+=(Lx+0.0)
+         else:
+            xxx_head-=0.0
          itype_lipid = lipid_index[icount]
          n_atm_pdb = len(ok_data[itype_lipid][3])
          res_num+=1
@@ -433,6 +464,11 @@ for i in range(0,nbinphi_cap_outer):
             r_old=[xxx_old,yyy_old,zzz_old]
             r_new=[0.0,0.0,0.0]
             r_new = euler_rot(r_old,r_new,eu_theta,eu_chi,eu_phi)
+#            if xxx_head>0.0:
+#               r_new=[zzz_old,yyy_old,0.0]
+#            else:
+#               r_new=[-zzz_old,yyy_old,0.0]
+
             xxx = r_new[0] + xxx_head
             yyy = r_new[1] + yyy_head
             zzz = r_new[2] + zzz_head
@@ -481,6 +517,10 @@ while icount<n_lipid_cap_inner:
               lipid_index.append(j)
               icount+=1
 
+# print to top
+for j in range(0,n_type_lipid):
+    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][5])
+
 
 icount=0
 for i in range(0,nbinphi_cap_inner):
@@ -503,10 +543,14 @@ for i in range(0,nbinphi_cap_inner):
          eu_theta = acos(-lipid_axial[2])
          eu_chi = atan2(lipid_axial[0],lipid_axial[1])
          # the third Euler angle is not important, take random value
-         eu_phi = random.uniform(0,2.0*pi) 
+#         eu_phi = random.uniform(0,2.0*pi)
+         eu_phi = 0.25*pi 
          # put the positive half sphere to the other size of the tube
          if xxx_head>0.0:
-            xxx_head+=Lx
+            xxx_head+=(Lx+0.0)
+         else:
+            xxx_head-=0.0
+
          itype_lipid = lipid_index[icount]
          n_atm_pdb = len(ok_data[itype_lipid][3])
          res_num+=1
@@ -519,6 +563,10 @@ for i in range(0,nbinphi_cap_inner):
             r_old=[xxx_old,yyy_old,zzz_old]
             r_new=[0.0,0.0,0.0]
             r_new = euler_rot(r_old,r_new,eu_theta,eu_chi,eu_phi)
+#            if xxx_head>0.0:
+#               r_new=[-zzz_old,yyy_old,0.0]
+#            else:
+#               r_new=[zzz_old,yyy_old,0.0]
             xxx = r_new[0] + xxx_head
             yyy = r_new[1] + yyy_head
             zzz = r_new[2] + zzz_head
@@ -557,12 +605,17 @@ for i in range(0,nbinphi_cap_inner):
 
 #nlipid_cap=nbin_costheta*nbin_phi
 
+# increase r_outer by 0.5 nm to avoid steric clash with lipid
+r_outer+=1.0 
 
 # modified Lx
 Lx = Lx + 2.0*r_outer + 2.0*water_thickness
 Lx_min = -r_outer - water_thickness
 Lx_max = Lx + Lx_min
- 
+
+# print to top
+print>>topfile, "%-5s  %d" %('W',nwater_outside)
+
 #try a different way of putting water outside the cylinder
 iwater=0
 n_side_x = int(Lx/d_water) + 1
@@ -631,7 +684,6 @@ while iwater<n_ion:
              xxx = dx*(float(j)+0.5) + Lx_min
 
              if iwater<n_ion:
-              iwater+=1
           #    print "iwater = %d" %iwater
               res_num+=1
               atm_num+=1
@@ -642,6 +694,7 @@ while iwater<n_ion:
                  atm_name='CL-'
                  resname='CL-'
 
+              iwater+=1
               #gromacs only allow 5 digits for residue number and atom number
               res_num_print=res_num%100000
               atm_num_print=atm_num%100000
@@ -656,6 +709,11 @@ if Lz!=Lz_old:
 print>>g, "%9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f" \
           %(Lx,Lz,Lz,0.0,0.0,0.0,0.0,0.0,0.0)
 
+# print to top
+print>>topfile, "%-5s  %d" %('NA+',nNa)
+print>>topfile, "%-5s  %d" %('CL-',nCl)
+
 f.close()
 g.close()
 h.close()
+topfile.close()

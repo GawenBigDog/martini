@@ -15,7 +15,7 @@ from math import pi,sqrt,acos,sin,cos
 
 f = open('cylpara_cap.txt','w')
 
-R = float(raw_input("Cylinder Radius, in unit of nm, should be larger than 4.4 nm: "))
+R = float(raw_input("Cylinder Radius, in unit of nm, should be larger than 8.0 nm: "))
 
 L = float(raw_input("Length of Cylinder, in unit of nm: "))
 
@@ -30,7 +30,7 @@ while Lz/2.0<=R:
       print "Lz must be greater than this value"
       Lz=float(raw_input("Reenter Lz in unit of nm: "))
 
-r = R - 4.4  #radius of water cylinder
+r = R - 8.0  #radius of water cylinder
 
 print>>f, "Radius of cylinder: %f nm" %R
 print>>f, "Length of cylinder: %f nm" %L
@@ -41,16 +41,17 @@ print>>f, "Radius of the center of the lipid bilayer: %f nm" %((R+r)/2.0)
 Lx = L + 2.0*R + 2.0*water_thickness
 print>>f, "Estimated Lx in unit of nm: %.5f" %Lx
 
-surf_area = 0.70  # GCER/DPGS surface area
+surf_area = 1.0  # GCER/DPGS surface area
 
 n_outer = int(2.0*math.pi*R*L/surf_area)
-n_inner = int(2.0*math.pi*(r+R)/2.0*L/surf_area)
+n_inner = int(2.0*math.pi*(R+r)/2.0*L/surf_area)
 
 print>>f, "Number of lipids in outer leaflet: %d" %n_outer
 print>>f, "Number of lipids in inner leaflet: %d" %n_inner
 
 # calculate the number of lipids in the cap
-n_outer_cap = int(4.0*pi*R*R/surf_area)
+# this is manually manipulated to reduce the cap density
+n_outer_cap = int(4.0*pi*(r+4.0)*(r+4.0)/surf_area)
 n_inner_cap = int(4.0*pi*r*r/surf_area)
 
 print>>f, "Number of lipids in outer leaflet of the cap: %d" %n_outer_cap
@@ -58,9 +59,9 @@ print>>f, "Number of lipids in inner leaflet of the cap: %d" %n_inner_cap
 
 l_lipid = sqrt(surf_area)
 
-d_costheta_outer = l_lipid/R
+d_costheta_outer = l_lipid/(r+4.0)
 nbintheta_cap_outer = int(2.0/d_costheta_outer) + 1
-d_phi_outer = l_lipid/R
+d_phi_outer = l_lipid/(r+4.0)
 nbinphi_cap_outer = int(2.0*pi/d_phi_outer) + 1
 
 # make sure there is enough grids
@@ -155,7 +156,7 @@ print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
 print>>f,"output   cyl_py_cap.gro"
 print>>f,"r_inner  %.4f" %r
 print>>f,"r_outer  %.4f" %R
-print>>f,"Lx       %.4f" %Lx
+print>>f,"Lx       %.4f" %L     # note the we print L rather than Lx
 print>>f,"Lz       %.4f" %Lz
 print>>f,"nwater_inside  %d" %n_water_inner
 print>>f,"nwater_outside  %d" %n_water_outer
