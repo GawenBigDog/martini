@@ -221,21 +221,17 @@ print "Total number of lipids in the inner leaflet is: %d" %n_lipid_inner
 n_type_lipid = len(ok_data)
 print "n_type_lipid = %d" %n_type_lipid
 lipid_index = []
-acc = [0]*n_type_lipid
 
 icount=0
-#while icount<n_lipid_inner:
-#      for j in range(0,n_type_lipid):
-#          if acc[j]<ok_data[j][1]:
-#             lipid_index.append(j)
-#             acc[j]+=1
-#             icount+=1
+ilipid=[0]*n_type_lipid
 
 while icount<n_lipid_inner:
       for j in range(0,n_type_lipid):
-          for k in range(0,ok_data[j][1]):
-              lipid_index.append(j)
-              icount+=1
+          if ilipid[j]<ok_data[j][1]:
+             lipid_index.append(j)
+             icount+=1
+             ilipid[j]+=1
+
 
 # print to top
 for j in range(0,n_type_lipid):
@@ -264,6 +260,11 @@ delphi = 2.0*pi/float(n_side_r)
 delx = Lx/float(n_side_x)
 
 icount=0
+
+# new algorithm to mix lipids uniformly
+
+r_head=[ [] for i in range(0,n_type_lipid) ]
+
 for i in range(0,n_side_x):
     for j in range(0,n_side_r):
       if icount<n_lipid_inner:
@@ -272,18 +273,26 @@ for i in range(0,n_side_x):
         yyy_head = r_inner*cos(phi)
         zzz_head = r_inner*sin(phi)
         itype_lipid = lipid_index[icount]
-        n_atm_pdb = len(ok_data[itype_lipid][3])
-#        print "n_atm_pdb = %d" %n_atm_pdb
-        res_num+=1
+        r_head[itype_lipid].append([xxx_head,yyy_head,zzz_head,phi])
         icount+=1
+
+
+for i in range(0,n_type_lipid):
+    for item in r_head[i]:
+        xxx_head=item[0]
+        yyy_head=item[1]
+        zzz_head=item[2]
+        phi=item[3]
+        n_atm_pdb = len(ok_data[i][3])
+        res_num+=1
         for k in range(0,n_atm_pdb):
             #shift origin
-            xxx = ok_data[itype_lipid][3][k][3] + xxx_head
+            xxx = ok_data[i][3][k][3] + xxx_head
 #            print "xxx = %f" %xxx
             # reorient molecules
-            yyy_old = ok_data[itype_lipid][3][k][4]
+            yyy_old = ok_data[i][3][k][4]
 #            print "yyy = %f" %yyy
-            zzz_old = ok_data[itype_lipid][3][k][5]
+            zzz_old = ok_data[i][3][k][5]
 #            print "zzz = %f" %zzz
             # rotate the vector by phi degrees using the rotation matrix
             # because in the pdb file the head-tail is along the negative z direction
@@ -292,8 +301,8 @@ for i in range(0,n_side_x):
             yyy = yyy_old*cos(phi) - zzz_old*sin(phi) + yyy_head
             zzz = yyy_old*sin(phi) + zzz_old*cos(phi) + zzz_head
             atm_num+=1
-            resname = ok_data[itype_lipid][3][k][0]
-            atm_name = ok_data[itype_lipid][3][k][2]
+            resname = ok_data[i][3][k][0]
+            atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
             res_num_print=res_num%100000
             atm_num_print=atm_num%100000
@@ -315,21 +324,16 @@ print "Total number of lipids in the outer leaflet is: %d" %n_lipid_outer
 #construct a list that index the order of placing lipid
 n_type_lipid = len(ok_data)
 lipid_index = []
-acc = [0]*n_type_lipid
 
 icount=0
-#while icount<n_lipid_outer:
-#      for j in range(0,n_type_lipid):
-#          if acc[j]<ok_data[j][2]:
-#             lipid_index.append(j)
-#             acc[j]+=1
-#             icount+=1
-    
+ilipid=[0]*n_type_lipid
+
 while icount<n_lipid_outer:
       for j in range(0,n_type_lipid):
-          for k in range(0,ok_data[j][2]):
-              lipid_index.append(j)
-              icount+=1
+          if ilipid[j]<ok_data[j][2]:
+             lipid_index.append(j)
+             icount+=1
+             ilipid[j]+=1
 
 # print to top
 for j in range(0,n_type_lipid):
@@ -349,6 +353,11 @@ delphi = 2.0*pi/float(n_side_r)
 delx = Lx/float(n_side_x)
 
 icount=0
+
+# new algorithm to mix lipids uniformly
+
+r_head=[ [] for i in range(0,n_type_lipid) ]
+
 for i in range(0,n_side_x):
     for j in range(0,n_side_r):
       if icount<n_lipid_outer:
@@ -357,15 +366,24 @@ for i in range(0,n_side_x):
         yyy_head = r_outer*cos(phi)
         zzz_head = r_outer*sin(phi)
         itype_lipid = lipid_index[icount]
-        n_atm_pdb = len(ok_data[itype_lipid][3])
-        res_num+=1
+        r_head[itype_lipid].append([xxx_head,yyy_head,zzz_head,phi])
         icount+=1
+
+
+for i in range(0,n_type_lipid):
+    for item in r_head[i]:
+        xxx_head=item[0]
+        yyy_head=item[1]
+        zzz_head=item[2]
+        phi=item[3]
+        n_atm_pdb = len(ok_data[i][3])
+        res_num+=1
         for k in range(0,n_atm_pdb):
             #shift origin
-            xxx = ok_data[itype_lipid][3][k][3] + xxx_head
+            xxx = ok_data[i][3][k][3] + xxx_head
             # reorient molecules
-            yyy_old = ok_data[itype_lipid][3][k][4]
-            zzz_old = ok_data[itype_lipid][3][k][5]
+            yyy_old = ok_data[i][3][k][4]
+            zzz_old = ok_data[i][3][k][5]
             # rotate the vector by phi degrees using the rotation matrix
             # because in the pdb file the head-tail is along the negative z direction
             # and this is for outer leaflet
@@ -374,8 +392,8 @@ for i in range(0,n_side_x):
             yyy = yyy_old*cos(phi) - zzz_old*sin(phi) + yyy_head
             zzz = yyy_old*sin(phi) + zzz_old*cos(phi) + zzz_head
             atm_num+=1
-            resname = ok_data[itype_lipid][3][k][0]
-            atm_name = ok_data[itype_lipid][3][k][2]
+            resname = ok_data[i][3][k][0]
+            atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
             res_num_print=res_num%100000
             atm_num_print=atm_num%100000
@@ -409,15 +427,16 @@ del_theta = 2.0/nbintheta_cap_outer  # note this is d_costheta actually!
 #construct a list that index the order of placing lipid
 n_type_lipid = len(ok_data)
 lipid_index = []
-acc = [0]*n_type_lipid
 
 icount=0
-    
+ilipid=[0]*n_type_lipid
+
 while icount<n_lipid_cap_outer:
       for j in range(0,n_type_lipid):
-          for k in range(0,ok_data[j][4]):
-              lipid_index.append(j)
-              icount+=1
+          if ilipid[j]<ok_data[j][4]:
+             lipid_index.append(j)
+             icount+=1
+             ilipid[j]+=1
 
 # print to top
 for j in range(0,n_type_lipid):
@@ -425,6 +444,11 @@ for j in range(0,n_type_lipid):
 
 
 icount=0
+
+# new algorithm to mix lipids uniformly
+
+r_head=[ [] for i in range(0,n_type_lipid) ]
+
 for i in range(0,nbinphi_cap_outer):
     for j in range(0,nbintheta_cap_outer):
       if icount<n_lipid_cap_outer:
@@ -453,13 +477,24 @@ for i in range(0,nbinphi_cap_outer):
          else:
             xxx_head-=0.0
          itype_lipid = lipid_index[icount]
-         n_atm_pdb = len(ok_data[itype_lipid][3])
-         res_num+=1
+         r_head[itype_lipid].append([xxx_head,yyy_head,zzz_head,eu_theta,eu_chi,eu_phi])
          icount+=1
-         for k in range(0,n_atm_pdb):
-            xxx_old = ok_data[itype_lipid][3][k][3] 
-            yyy_old = ok_data[itype_lipid][3][k][4]
-            zzz_old = ok_data[itype_lipid][3][k][5]
+
+
+for i in range(0,n_type_lipid):
+    for item in r_head[i]:
+        xxx_head=item[0]
+        yyy_head=item[1]
+        zzz_head=item[2]
+        eu_theta=item[3]
+        eu_chi=item[4]
+        eu_phi=item[5]
+        n_atm_pdb = len(ok_data[i][3])
+        res_num+=1
+        for k in range(0,n_atm_pdb):
+            xxx_old = ok_data[i][3][k][3] 
+            yyy_old = ok_data[i][3][k][4]
+            zzz_old = ok_data[i][3][k][5]
             # rotate the vector with the Euler rotation matrix
             r_old=[xxx_old,yyy_old,zzz_old]
             r_new=[0.0,0.0,0.0]
@@ -474,8 +509,8 @@ for i in range(0,nbinphi_cap_outer):
             zzz = r_new[2] + zzz_head
 
             atm_num+=1
-            resname = ok_data[itype_lipid][3][k][0]
-            atm_name = ok_data[itype_lipid][3][k][2]
+            resname = ok_data[i][3][k][0]
+            atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
             res_num_print=res_num%100000
             atm_num_print=atm_num%100000
@@ -507,15 +542,16 @@ del_theta = 2.0/nbintheta_cap_inner   # note it is d_costheta here actually!
 #construct a list that index the order of placing lipid
 n_type_lipid = len(ok_data)
 lipid_index = []
-acc = [0]*n_type_lipid
 
 icount=0
-    
+ilipid=[0]*n_type_lipid
+
 while icount<n_lipid_cap_inner:
       for j in range(0,n_type_lipid):
-          for k in range(0,ok_data[j][5]):
-              lipid_index.append(j)
-              icount+=1
+          if ilipid[j]<ok_data[j][5]:
+             lipid_index.append(j)
+             icount+=1
+             ilipid[j]+=1
 
 # print to top
 for j in range(0,n_type_lipid):
@@ -523,6 +559,11 @@ for j in range(0,n_type_lipid):
 
 
 icount=0
+
+# new algorithm to mix lipids uniformly
+
+r_head=[ [] for i in range(0,n_type_lipid) ]
+
 for i in range(0,nbinphi_cap_inner):
     for j in range(0,nbintheta_cap_inner):
       if icount<n_lipid_cap_inner:
@@ -552,13 +593,24 @@ for i in range(0,nbinphi_cap_inner):
             xxx_head-=0.0
 
          itype_lipid = lipid_index[icount]
-         n_atm_pdb = len(ok_data[itype_lipid][3])
-         res_num+=1
+         r_head[itype_lipid].append([xxx_head,yyy_head,zzz_head,eu_theta,eu_chi,eu_phi])
          icount+=1
-         for k in range(0,n_atm_pdb):
-            xxx_old = ok_data[itype_lipid][3][k][3] 
-            yyy_old = ok_data[itype_lipid][3][k][4]
-            zzz_old = ok_data[itype_lipid][3][k][5]
+
+
+for i in range(0,n_type_lipid):
+    for item in r_head[i]:
+        xxx_head=item[0]
+        yyy_head=item[1]
+        zzz_head=item[2]
+        eu_theta=item[3]
+        eu_chi=item[4]
+        eu_phi=item[5]
+        n_atm_pdb = len(ok_data[i][3])
+        res_num+=1
+        for k in range(0,n_atm_pdb):
+            xxx_old = ok_data[i][3][k][3] 
+            yyy_old = ok_data[i][3][k][4]
+            zzz_old = ok_data[i][3][k][5]
             # rotate the vector with the Euler rotation matrix
             r_old=[xxx_old,yyy_old,zzz_old]
             r_new=[0.0,0.0,0.0]
@@ -572,8 +624,8 @@ for i in range(0,nbinphi_cap_inner):
             zzz = r_new[2] + zzz_head
 
             atm_num+=1
-            resname = ok_data[itype_lipid][3][k][0]
-            atm_name = ok_data[itype_lipid][3][k][2]
+            resname = ok_data[i][3][k][0]
+            atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
             res_num_print=res_num%100000
             atm_num_print=atm_num%100000
