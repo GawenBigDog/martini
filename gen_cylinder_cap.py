@@ -85,7 +85,18 @@ for line in f:
     elif 'water_thickness' in line:
         args = line.split()
         water_thickness = float(args[1])
+    elif 'cap_bool' in line:
+        args = line.split()
+        if args[1]=='True':
+           cap_bool=True
+        if args[1]=='False':
+           cap_bool=False
 
+print "Starting generating configuration..."
+if cap_bool:
+   print "Cap will be generated"
+else:
+   print "No Cap will be generated"
 
 #    elif 'n_tot' in line:
 #        args = line.split()
@@ -105,7 +116,7 @@ print>>h, "test"
 topfile = open("system_cap.top",'w')
 header='''#include "martini_v2.0.itp"
 #include "martini_v2.0_lipids.itp"
-#include "martini_v2.0_DPGS_01.itp"
+#include "martini_v2.0_DPGS_24.itp"
 #include "martini_v2.0_ions.itp"
 #include "martini_chol_hinge_p30.itp"
 
@@ -246,6 +257,7 @@ print "n_lipid_inner = %d" %n_lipid_inner
 #determine the lattice size
 cell_inner = sqrt(r_inner*2.0*pi*Lx/float(n_lipid_inner))
 n_side_x = int(Lx/cell_inner) + 1
+print "n_side_x = %d for inner lipid" %n_side_x
 n_side_r = int(2.0*pi*r_inner/cell_inner) + 1
 #adjust bin number and size if not sufficient
 while n_side_x*n_side_r<n_lipid_inner:
@@ -282,7 +294,7 @@ for i in range(0,n_type_lipid):
         xxx_head=item[0]
         yyy_head=item[1]
         zzz_head=item[2]
-        phi=item[3]
+        phi=item[3]+pi/2.0
         n_atm_pdb = len(ok_data[i][3])
         res_num+=1
         for k in range(0,n_atm_pdb):
@@ -297,10 +309,19 @@ for i in range(0,n_type_lipid):
             # rotate the vector by phi degrees using the rotation matrix
             # because in the pdb file the head-tail is along the negative z direction
             # so the actual degree of rotation is phi+pi/2.0
-            phi+=pi/2.0
+#            phi+=pi/2.0
             yyy = yyy_old*cos(phi) - zzz_old*sin(phi) + yyy_head
             zzz = yyy_old*sin(phi) + zzz_old*cos(phi) + zzz_head
             atm_num+=1
+#            debug 
+#            rsqr=math.sqrt(yyy*yyy+zzz*zzz)
+#            if rsqr<r_inner:
+#               print "rsqr<r_inner, rsqr=%8.3f" %rsqr
+#               print "atom number = %d" %atm_num
+#               print "xhead = %8.3f, yhead = %8.3f, zhead = %8.3f" \
+#                     %(xxx_head,yyy_head,zzz_head)
+#               print "phi = %8.3f, phi = %8.3f degree" %(phi,phi/pi*180.0)
+
             resname = ok_data[i][3][k][0]
             atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
@@ -342,6 +363,7 @@ for j in range(0,n_type_lipid):
 #determine the lattice size
 cell_outer = sqrt(r_outer*2.0*pi*Lx/float(n_lipid_outer))
 n_side_x = int(Lx/cell_outer) + 1
+print "n_side_x = %d for outer lipid" %n_side_x
 n_side_r = int(2.0*pi*r_outer/cell_outer) + 1
 #adjust bin number and size if not sufficient
 while n_side_x*n_side_r<n_lipid_outer:
@@ -375,7 +397,7 @@ for i in range(0,n_type_lipid):
         xxx_head=item[0]
         yyy_head=item[1]
         zzz_head=item[2]
-        phi=item[3]
+        phi=item[3]+1.5*pi
         n_atm_pdb = len(ok_data[i][3])
         res_num+=1
         for k in range(0,n_atm_pdb):
@@ -388,10 +410,19 @@ for i in range(0,n_type_lipid):
             # because in the pdb file the head-tail is along the negative z direction
             # and this is for outer leaflet
             # so the actual degree of rotation is phi+pi*1.5
-            phi+=1.5*pi
+#            phi+=1.5*pi
             yyy = yyy_old*cos(phi) - zzz_old*sin(phi) + yyy_head
             zzz = yyy_old*sin(phi) + zzz_old*cos(phi) + zzz_head
             atm_num+=1
+#            debug 
+#            rsqr=math.sqrt(yyy*yyy+zzz*zzz)
+#            if rsqr>r_outer:
+#               print "rsqr>r_outer, rsqr=%8.3f" %rsqr
+#               print "atom number = %d" %atm_num
+#               print "xhead = %8.3f, yhead = %8.3f, zhead = %8.3f" \
+#                     %(xxx_head,yyy_head,zzz_head)
+#               print "phi = %8.3f, phi = %8.3f degree" %(phi,phi/pi*180.0)
+
             resname = ok_data[i][3][k][0]
             atm_name = ok_data[i][3][k][2]
             #gromacs only allow 5 digits for residue number and atom number
@@ -405,33 +436,33 @@ for i in range(0,n_type_lipid):
 # generate cap on the two side of the molecule
 
 # outer leaflet 
-
+if cap_bool:
 #get the total number of lipids in the outer leaflet
-n_lipid_cap_outer=0
-for item in ok_data:
+ n_lipid_cap_outer=0
+ for item in ok_data:
     n_lipid_cap_outer+=item[4]
 
-print "Total number of lipids in the outer leaflet of the cap is: %d" %n_lipid_cap_outer
+ print "Total number of lipids in the outer leaflet of the cap is: %d" %n_lipid_cap_outer
 
 # check if there is enough grids to place so many lipids in the outer layer
-if n_lipid_cap_outer>nbinphi_cap_outer*nbintheta_cap_outer:
+ if n_lipid_cap_outer>nbinphi_cap_outer*nbintheta_cap_outer:
    print "Error! Not sufficeint grids for the outer layer of cap!"
    print "Number of lipids in outer layer of cap: %d" %n_lipid_cap_outer
    print "Number of grids: %d" %nbinphi_cap_outer*nbintheta_cap_outer
    exit()
 
-del_phi = 2.0*pi/nbinphi_cap_outer
-del_theta = 2.0/nbintheta_cap_outer  # note this is d_costheta actually!
+ del_phi = 2.0*pi/nbinphi_cap_outer
+ del_theta = 2.0/nbintheta_cap_outer  # note this is d_costheta actually!
 
 
 #construct a list that index the order of placing lipid
-n_type_lipid = len(ok_data)
-lipid_index = []
+ n_type_lipid = len(ok_data)
+ lipid_index = []
 
-icount=0
-ilipid=[0]*n_type_lipid
+ icount=0
+ ilipid=[0]*n_type_lipid
 
-while icount<n_lipid_cap_outer:
+ while icount<n_lipid_cap_outer:
       for j in range(0,n_type_lipid):
           if ilipid[j]<ok_data[j][4]:
              lipid_index.append(j)
@@ -439,17 +470,17 @@ while icount<n_lipid_cap_outer:
              ilipid[j]+=1
 
 # print to top
-for j in range(0,n_type_lipid):
+ for j in range(0,n_type_lipid):
     print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][4])
 
 
-icount=0
+ icount=0
 
 # new algorithm to mix lipids uniformly
 
-r_head=[ [] for i in range(0,n_type_lipid) ]
+ r_head=[ [] for i in range(0,n_type_lipid) ]
 
-for i in range(0,nbinphi_cap_outer):
+ for i in range(0,nbinphi_cap_outer):
     for j in range(0,nbintheta_cap_outer):
       if icount<n_lipid_cap_outer:
          phi = del_phi*(float(i)+0.5)
@@ -481,7 +512,7 @@ for i in range(0,nbinphi_cap_outer):
          icount+=1
 
 
-for i in range(0,n_type_lipid):
+ for i in range(0,n_type_lipid):
     for item in r_head[i]:
         xxx_head=item[0]
         yyy_head=item[1]
@@ -522,31 +553,31 @@ for i in range(0,n_type_lipid):
 # inner leaflet 
 
 #get the total number of lipids in the inner leaflet
-n_lipid_cap_inner=0
-for item in ok_data:
+ n_lipid_cap_inner=0
+ for item in ok_data:
     n_lipid_cap_inner+=item[5]
 
-print "Total number of lipids in the inner leaflet of the cap is: %d" %n_lipid_cap_inner
+ print "Total number of lipids in the inner leaflet of the cap is: %d" %n_lipid_cap_inner
 
 # check if there is enough grids to place so many lipids in the inner layer
-if n_lipid_cap_inner>nbinphi_cap_inner*nbintheta_cap_inner:
+ if n_lipid_cap_inner>nbinphi_cap_inner*nbintheta_cap_inner:
    print "Error! Not sufficeint grids for the inner layer of cap!"
    print "Number of lipids in inner layer of cap: %d" %n_lipid_cap_inner
    print "Number of grids: %d" %nbinphi_cap_inner*nbintheta_cap_inner
    exit()
 
-del_phi = 2.0*pi/nbinphi_cap_inner
-del_theta = 2.0/nbintheta_cap_inner   # note it is d_costheta here actually!
+ del_phi = 2.0*pi/nbinphi_cap_inner
+ del_theta = 2.0/nbintheta_cap_inner   # note it is d_costheta here actually!
 
 
 #construct a list that index the order of placing lipid
-n_type_lipid = len(ok_data)
-lipid_index = []
+ n_type_lipid = len(ok_data)
+ lipid_index = []
 
-icount=0
-ilipid=[0]*n_type_lipid
+ icount=0
+ ilipid=[0]*n_type_lipid
 
-while icount<n_lipid_cap_inner:
+ while icount<n_lipid_cap_inner:
       for j in range(0,n_type_lipid):
           if ilipid[j]<ok_data[j][5]:
              lipid_index.append(j)
@@ -554,17 +585,17 @@ while icount<n_lipid_cap_inner:
              ilipid[j]+=1
 
 # print to top
-for j in range(0,n_type_lipid):
+ for j in range(0,n_type_lipid):
     print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][5])
 
 
-icount=0
+ icount=0
 
 # new algorithm to mix lipids uniformly
 
-r_head=[ [] for i in range(0,n_type_lipid) ]
+ r_head=[ [] for i in range(0,n_type_lipid) ]
 
-for i in range(0,nbinphi_cap_inner):
+ for i in range(0,nbinphi_cap_inner):
     for j in range(0,nbintheta_cap_inner):
       if icount<n_lipid_cap_inner:
          phi = del_phi*(float(i)+0.5)
@@ -597,7 +628,7 @@ for i in range(0,nbinphi_cap_inner):
          icount+=1
 
 
-for i in range(0,n_type_lipid):
+ for i in range(0,n_type_lipid):
     for item in r_head[i]:
         xxx_head=item[0]
         yyy_head=item[1]
@@ -658,11 +689,17 @@ for i in range(0,n_type_lipid):
 #nlipid_cap=nbin_costheta*nbin_phi
 
 # increase r_outer by 0.5 nm to avoid steric clash with lipid
-r_outer+=1.0 
+r_outer+=0.5 
 
+print "r_outer before wrapping water is %8.3f nm" %r_outer
 # modified Lx
-Lx = Lx + 2.0*r_outer + 2.0*water_thickness
-Lx_min = -r_outer - water_thickness
+if cap_bool:
+   Lx = Lx + 2.0*r_outer + 2.0*water_thickness
+   Lx_min = -r_outer - water_thickness
+else:
+   Lx = Lx  + 2.0*water_thickness
+   Lx_min =  -water_thickness
+
 Lx_max = Lx + Lx_min
 
 # print to top
