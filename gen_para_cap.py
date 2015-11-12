@@ -16,7 +16,7 @@ import math
 from math import pi,sqrt,acos,sin,cos
 
 d_water = 0.47    # diameter of water bead: 0.47 nm
-lipid_len = d_water*7.0   # for current lipids, the longest length is 0.47*7 nm 
+lipid_len = d_water*7.0 + 0.1   # for current lipids, the longest length is 0.47*7 nm 
 
 f = open('cylpara_cap.txt','w')
 
