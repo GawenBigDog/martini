@@ -32,6 +32,11 @@ water_thickness = float(raw_input("water thickness on one side of the tube in un
 
 cap_args = raw_input("With cap or not? (Y/N)")
 
+DPGS_ratio=int(raw_input("DPGS ratio (must be an integer): "))
+POPE_ratio=int(raw_input("POPE ratio (must be an integer): "))
+DPPC_ratio=int(raw_input("DPPC ratio (must be an integer): "))
+CHOL_ratio=int(raw_input("CHOL ratio (must be an integer): "))
+
 cap_bool=True
 if 'Y' in cap_args or 'y' in cap_args:
    cap_bool=True
@@ -142,38 +147,44 @@ print>>f,"\n"
 
 # start writing the input parameter part
 
+tt_ratio = DPGS_ratio + POPE_ratio + DPPC_ratio + CHOL_ratio
+
 #DPGS
 pdbname='DPGS_lattice.pdb'
-n_i = n_inner/6
-n_o = n_outer/6
-n_i_c = n_inner_cap/6
-n_o_c = n_outer_cap/6
-print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+n_i = n_inner/tt_ratio*DPGS_ratio
+n_o = n_outer/tt_ratio*DPGS_ratio
+n_i_c = n_inner_cap/tt_ratio*DPGS_ratio
+n_o_c = n_outer_cap/tt_ratio*DPGS_ratio
+if DPGS_ratio>0:
+   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
 
  
 #POPE
 pdbname='POPE_lattice.pdb'
-n_i = n_inner/6
-n_o = n_outer/6
-n_i_c = n_inner_cap/6
-n_o_c = n_outer_cap/6
-print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+n_i = n_inner/tt_ratio*POPE_ratio
+n_o = n_outer/tt_ratio*POPE_ratio
+n_i_c = n_inner_cap/tt_ratio*POPE_ratio
+n_o_c = n_outer_cap/tt_ratio*POPE_ratio
+if POPE_ratio>0:
+   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
 
 #CHOL
 pdbname='CHOL_lattice.pdb'
-n_i = n_inner/3
-n_o = n_outer/3
-n_i_c = n_inner_cap/3
-n_o_c = n_outer_cap/3
-print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+n_i = n_inner/tt_ratio*CHOL_ratio
+n_o = n_outer/tt_ratio*CHOL_ratio
+n_i_c = n_inner_cap/tt_ratio*CHOL_ratio
+n_o_c = n_outer_cap/tt_ratio*CHOL_ratio
+if CHOL_ratio>0:
+   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
 
 #DPPC
 pdbname='DPPC_lattice.pdb'
-n_i = n_inner/3
-n_o = n_outer/3
-n_i_c = n_inner_cap/3
-n_o_c = n_outer_cap/3
-print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+n_i = n_inner/tt_ratio*DPPC_ratio
+n_o = n_outer/tt_ratio*DPPC_ratio
+n_i_c = n_inner_cap/tt_ratio*DPPC_ratio
+n_o_c = n_outer_cap/tt_ratio*DPPC_ratio
+if DPPC_ratio>0:
+   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
 
 print>>f,"output   cyl_py_cap.gro"
 print>>f,"cap_bool %s" %(str(cap_bool))
