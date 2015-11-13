@@ -124,6 +124,7 @@ header='''#include "martini_v2.0.itp"
 myelin tube
 
 [ molecules ]'''
+count_res=0
 print>>topfile, "%s" %header
 
 res_num=0
@@ -174,7 +175,8 @@ for item in pdb_list:
 #Note that the cylinder's axis is aligned along the x direction
 
 # print to top
-print>>topfile, "%-5s  %d" %('W',nwater_inside)
+count_res+=nwater_inside
+print>>topfile, "%-5s  %d        # %d" %('W',nwater_inside,count_res)
 
 #try a different way of putting water inside the cylinder
 d_water = 0.47  # diameter of martini water
@@ -246,7 +248,8 @@ while icount<n_lipid_inner:
 
 # print to top
 for j in range(0,n_type_lipid):
-    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][1])
+    count_res+=ok_data[j][1]
+    print>>topfile, "%-5s  %d   # %d" %(ok_data[j][3][0][0],ok_data[j][1],count_res)
 
 print "icount = %d" %icount
 print "n_lipid_inner = %d" %n_lipid_inner
@@ -358,7 +361,8 @@ while icount<n_lipid_outer:
 
 # print to top
 for j in range(0,n_type_lipid):
-    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][2])
+    count_res+=ok_data[j][2]
+    print>>topfile, "%-5s  %d   # %d" %(ok_data[j][3][0][0],ok_data[j][2],count_res)
 
 #determine the lattice size
 cell_outer = sqrt(r_outer*2.0*pi*Lx/float(n_lipid_outer))
@@ -471,7 +475,8 @@ if cap_bool:
 
 # print to top
  for j in range(0,n_type_lipid):
-    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][4])
+    count_res+=ok_data[j][4]
+    print>>topfile, "%-5s  %d    # %d" %(ok_data[j][3][0][0],ok_data[j][4],count_res)
 
 
  icount=0
@@ -586,7 +591,8 @@ if cap_bool:
 
 # print to top
  for j in range(0,n_type_lipid):
-    print>>topfile, "%-5s  %d" %(ok_data[j][3][0][0],ok_data[j][5])
+    count_res+=ok_data[j][5]
+    print>>topfile, "%-5s  %d    # %d" %(ok_data[j][3][0][0],ok_data[j][5],count_res)
 
 
  icount=0
@@ -703,7 +709,8 @@ else:
 Lx_max = Lx + Lx_min
 
 # print to top
-print>>topfile, "%-5s  %d" %('W',nwater_outside)
+count_res+=nwater_outside
+print>>topfile, "%-5s  %d    # %d" %('W',nwater_outside,count_res)
 
 #try a different way of putting water outside the cylinder
 iwater=0
@@ -799,8 +806,10 @@ print>>g, "%9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f" \
           %(Lx,Lz,Lz,0.0,0.0,0.0,0.0,0.0,0.0)
 
 # print to top
-print>>topfile, "%-5s  %d" %('NA+',nNa)
-print>>topfile, "%-5s  %d" %('CL-',nCl)
+count_res+=nNa
+print>>topfile, "%-5s  %d  # %d" %('NA+',nNa,count_res)
+count_res+=nCl
+print>>topfile, "%-5s  %d  # %d" %('CL-',nCl,count_res)
 
 f.close()
 g.close()
