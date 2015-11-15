@@ -64,17 +64,17 @@ else:
 
 print>>f, "Estimated Lx in unit of nm: %.5f" %Lx
 
-surf_area = d_water*d_water*4  # estimated surface area based on the DPGS lattice PDB
+surf_area = d_water*d_water*3  # estimated surface area based on the DPGS lattice PDB
 
 n_outer = int(2.0*math.pi*R*L/surf_area)
-n_inner = int(2.0*math.pi*r*L/surf_area)
+n_inner = int(2.0*math.pi*(r+R)/2.0*L/surf_area)
 
 print>>f, "Number of lipids in outer leaflet: %d" %n_outer
 print>>f, "Number of lipids in inner leaflet: %d" %n_inner
 
 # calculate the number of lipids in the cap
 # this is manually manipulated to reduce the cap density
-n_outer_cap = int(4.0*pi*R*R/surf_area)
+n_outer_cap = int(pi*(R+r)*(R+r)/surf_area)
 n_inner_cap = int(4.0*pi*r*r/surf_area)
 
 print>>f, "Number of lipids in outer leaflet of the cap: %d" %n_outer_cap
