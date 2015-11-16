@@ -114,7 +114,7 @@ while iwater<n_water_side:
 
 #print the box dimension
 print>>g, "%9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f" \
-          %(Lx+x_extend,Ly,Lz,0.0,0.0,0.0,0.0,0.0,0.0)
+          %(xlength+x_extend,ylength,zlength,0.0,0.0,0.0,0.0,0.0,0.0)
  
 f.close()
 g.close()
