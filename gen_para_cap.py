@@ -15,8 +15,8 @@ import math
 
 from math import pi,sqrt,acos,sin,cos
 
-d_water = 0.47    # diameter of water bead: 0.47 nm
-lipid_len = d_water*7.0 + 0.1   # for current lipids, the longest length is 0.47*7 nm 
+d_bead = 0.3    # diameter of water bead: 0.47 nm
+lipid_len = d_bead*7.0    # for current lipids, the longest length is 0.47*7 nm 
 
 f = open('cylpara_cap.txt','w')
 
@@ -64,10 +64,11 @@ else:
 
 print>>f, "Estimated Lx in unit of nm: %.5f" %Lx
 
-surf_area = d_water*d_water*3  # estimated surface area based on the DPGS lattice PDB
+#surf_area = d_water*d_water*3  # estimated surface area based on the DPGS lattice PDB
+surf_area = 0.56
 
 n_outer = int(2.0*math.pi*R*L/surf_area)
-n_inner = int(2.0*math.pi*(r+R)/2.0*L/surf_area)
+n_inner = int(2.0*math.pi*r*L/surf_area)
 
 print>>f, "Number of lipids in outer leaflet: %d" %n_outer
 print>>f, "Number of lipids in inner leaflet: %d" %n_inner
