@@ -4,7 +4,8 @@ from math import sqrt
 
 # Write the lattice version of lipid  pdb
 
-sigma=4.7  # LJ sigma for most martini beads
+# sigma=4.7  # LJ sigma for most martini beads
+sigma=3.0   # use smaller LJ to make more compact lipid
 DPGS=[ 
 ('C1',[-0.5,sqrt(3.0)/4.0,0.0]),
 ('C2',[0.5,sqrt(3.0)/4.0,0.0]),
