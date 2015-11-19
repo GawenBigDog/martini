@@ -10,18 +10,19 @@ import numpy as np
 from numpy import random
 
 # Euler Rotation Matrix
+# From Goldstein Classical Mechanics book Eq. 4.46
 def euler_rot(r1,r2,theta,chi,phi):
 #    print "theta = %.5f  pi" %(theta/pi)
 #    print "chi = %.5f  pi" %(chi/pi)
 #    print "phi = %.5f  pi" %(phi/pi)
     a11 = cos(chi)*cos(phi) - cos(theta)*sin(phi)*sin(chi)
-    a12 = -sin(chi)*cos(phi) - cos(theta)*sin(phi)*cos(chi)
-    a13 = sin(theta)*sin(phi)
-    a21 = cos(chi)*sin(phi) + cos(theta)*cos(phi)*sin(chi)
+    a12 = cos(chi)*sin(phi) + cos(theta)*cos(phi)*sin(chi)
+    a13 = sin(theta)*sin(chi)
+    a21 = -sin(chi)*cos(phi) - cos(theta)*sin(phi)*cos(chi)
     a22 = -sin(chi)*sin(phi) + cos(theta)*cos(phi)*cos(chi)
-    a23 = -sin(theta)*cos(phi)
-    a31 = sin(theta)*sin(chi)
-    a32 = sin(theta)*cos(chi)
+    a23 = cos(chi)*sin(theta)
+    a31 = sin(theta)*sin(phi)
+    a32 = -sin(theta)*cos(phi)
     a33 = cos(theta)
 
     r2[0] = a11*r1[0] + a12*r1[1] + a13*r1[2]
@@ -735,7 +736,7 @@ while iwater<nwater_outside:
              xxx = dx*(float(j)+0.5) + Lx_min
              if r_yz>r_outer:
                 out_tube = True
-             elif r_yz<r_outer and (xxx<Lx_min + water_thickness or xxx>Lx_max - water_thickness):
+             elif r_yz<r_outer and (xxx<Lx_min + water_thickness - 0.5 or xxx>Lx_max - water_thickness + 0.5):
                 out_tube = True
 
              if iwater<nwater_outside and out_tube:
