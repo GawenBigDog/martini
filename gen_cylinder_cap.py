@@ -43,7 +43,8 @@ for line in f:
         n_pdb_outer = int(args[2])
         n_pdb_cap_outer = int(args[3])
         n_pdb_cap_inner = int(args[4])
-        pdb_list.append([pdb_name,n_pdb_inner,n_pdb_outer,n_pdb_cap_outer,n_pdb_cap_inner]) 
+        n_ratio = int(args[5])
+        pdb_list.append([pdb_name,n_pdb_inner,n_pdb_outer,n_pdb_cap_outer,n_pdb_cap_inner,n_ratio]) 
     elif 'output' in line:
         args = line.split()
         outputname = args[1]
@@ -166,7 +167,7 @@ for item in pdb_list:
 #                    print temp_data
 
 #    read_pdb(item[0],temp_data)
-    ok_data.append([item[0],item[1],item[2],temp_data,item[3],item[4]])
+    ok_data.append([item[0],item[1],item[2],temp_data,item[3],item[4],item[5]])
 #    print "size of temp_data = %d" %(len(temp_data))
 #    print len(ok_data[0][3])
 #    del temp_data[:]
@@ -241,10 +242,11 @@ ilipid=[0]*n_type_lipid
 
 while icount<n_lipid_inner:
       for j in range(0,n_type_lipid):
-          if ilipid[j]<ok_data[j][1]:
-             lipid_index.append(j)
-             icount+=1
-             ilipid[j]+=1
+          for k in range(0,ok_data[j][6]):
+              if ilipid[j]<ok_data[j][1]:
+                 lipid_index.append(j)
+                 icount+=1
+                 ilipid[j]+=1
 
 
 # print to top
@@ -355,10 +357,11 @@ ilipid=[0]*n_type_lipid
 
 while icount<n_lipid_outer:
       for j in range(0,n_type_lipid):
-          if ilipid[j]<ok_data[j][2]:
-             lipid_index.append(j)
-             icount+=1
-             ilipid[j]+=1
+          for k in range(0,ok_data[j][6]):
+              if ilipid[j]<ok_data[j][2]:
+                 lipid_index.append(j)
+                 icount+=1
+                 ilipid[j]+=1
 
 # print to top
 for j in range(0,n_type_lipid):
@@ -469,10 +472,11 @@ if cap_bool:
 
  while icount<n_lipid_cap_outer:
       for j in range(0,n_type_lipid):
-          if ilipid[j]<ok_data[j][4]:
-             lipid_index.append(j)
-             icount+=1
-             ilipid[j]+=1
+          for k in range(0,ok_data[j][6]):
+              if ilipid[j]<ok_data[j][4]:
+                 lipid_index.append(j)
+                 icount+=1
+                 ilipid[j]+=1
 
 # print to top
  for j in range(0,n_type_lipid):
@@ -585,10 +589,11 @@ if cap_bool:
 
  while icount<n_lipid_cap_inner:
       for j in range(0,n_type_lipid):
-          if ilipid[j]<ok_data[j][5]:
-             lipid_index.append(j)
-             icount+=1
-             ilipid[j]+=1
+          for k in range(0,ok_data[j][6]):
+              if ilipid[j]<ok_data[j][5]:
+                 lipid_index.append(j)
+                 icount+=1
+                 ilipid[j]+=1
 
 # print to top
  for j in range(0,n_type_lipid):

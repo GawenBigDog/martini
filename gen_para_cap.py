@@ -16,7 +16,7 @@ import math
 from math import pi,sqrt,acos,sin,cos
 
 d_bead = 0.3    # diameter of water bead: 0.47 nm
-lipid_len = d_bead*7.0    # for current lipids, the longest length is 0.47*7 nm 
+lipid_len = d_bead*7.0 + 0.1   # for current lipids, the longest length is 0.47*7 nm 
 
 f = open('cylpara_cap.txt','w')
 
@@ -75,7 +75,7 @@ print>>f, "Number of lipids in inner leaflet: %d" %n_inner
 
 # calculate the number of lipids in the cap
 # this is manually manipulated to reduce the cap density
-n_outer_cap = int(pi*(R+r)*(R+r)/surf_area)
+n_outer_cap = int(4.0*pi*R*R/surf_area)
 n_inner_cap = int(4.0*pi*r*r/surf_area)
 
 print>>f, "Number of lipids in outer leaflet of the cap: %d" %n_outer_cap
@@ -157,7 +157,7 @@ n_o = n_outer/tt_ratio*DPGS_ratio
 n_i_c = n_inner_cap/tt_ratio*DPGS_ratio
 n_o_c = n_outer_cap/tt_ratio*DPGS_ratio
 if DPGS_ratio>0:
-   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+   print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,DPGS_ratio)
 
  
 #POPE
@@ -167,7 +167,7 @@ n_o = n_outer/tt_ratio*POPE_ratio
 n_i_c = n_inner_cap/tt_ratio*POPE_ratio
 n_o_c = n_outer_cap/tt_ratio*POPE_ratio
 if POPE_ratio>0:
-   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+   print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,POPE_ratio)
 
 #CHOL
 pdbname='CHOL_lattice.pdb'
@@ -176,7 +176,7 @@ n_o = n_outer/tt_ratio*CHOL_ratio
 n_i_c = n_inner_cap/tt_ratio*CHOL_ratio
 n_o_c = n_outer_cap/tt_ratio*CHOL_ratio
 if CHOL_ratio>0:
-   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+   print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,CHOL_ratio)
 
 #DPPC
 pdbname='DPPC_lattice.pdb'
@@ -185,7 +185,7 @@ n_o = n_outer/tt_ratio*DPPC_ratio
 n_i_c = n_inner_cap/tt_ratio*DPPC_ratio
 n_o_c = n_outer_cap/tt_ratio*DPPC_ratio
 if DPPC_ratio>0:
-   print>>f, "%-20s %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c)
+   print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,DPPC_ratio)
 
 print>>f,"output   cyl_py_cap.gro"
 print>>f,"cap_bool %s" %(str(cap_bool))
