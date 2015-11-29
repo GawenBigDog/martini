@@ -75,8 +75,8 @@ print>>f, "Number of lipids in inner leaflet: %d" %n_inner
 
 # calculate the number of lipids in the cap
 # this is manually manipulated to reduce the cap density
-n_outer_cap = int(4.0*pi*R*R/surf_area)
-n_inner_cap = int(4.0*pi*r*r/surf_area)
+n_outer_cap = int(4.0*pi*R*R/surf_area)*2   # generate a large number of points to ensure coverage
+n_inner_cap = int(4.0*pi*r*r/surf_area)*2   # generate a large number of points to ensure coverage
 
 print>>f, "Number of lipids in outer leaflet of the cap: %d" %n_outer_cap
 print>>f, "Number of lipids in inner leaflet of the cap: %d" %n_inner_cap
@@ -92,7 +92,7 @@ nbinphi_cap_outer = int(2.0*pi/d_phi_outer) + 1
 while nbintheta_cap_outer*nbinphi_cap_outer<n_outer_cap:
       print "Not enough grid!"
       print "n_outer_cap = %d" %n_outer_cap
-      print "Current number of grids: %d" %(nbintheta_cap_outer*nbinphi_cap_inner)
+      print "Current number of grids: %d" %(nbintheta_cap_outer*nbinphi_cap_outer)
       print "Will update grids"
       nbintheta_cap_outer+=1 
       nbinphi_cap_outer+=1
