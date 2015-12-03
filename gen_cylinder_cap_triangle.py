@@ -55,6 +55,15 @@ def aroundZ(r, angle):
     r = [x,y,z]
     return r
 
+def in_the_cap(x,y,z,r_pore):
+    bol_p=False
+    r = sqrt(x*x + y*y + z*z)
+    if r<r_pore:
+       bol_p=True
+    else:
+       bol_p=False
+  
+    return bol_p
 
 f =open("cap_parameter.txt",'r')
 
@@ -288,21 +297,29 @@ print "n_lipid_inner = %d" %n_lipid_inner
 #    print  "lipid index =  %d" %lipid_index[i]
     
 #determine the lattice size
-cell_inner = sqrt(r_inner*2.0*pi*Lx/float(n_lipid_inner))
-n_side_x = int(Lx/cell_inner) + 1
-print "n_side_x = %d for inner lipid" %n_side_x
-n_side_r = int(2.0*pi*r_inner/cell_inner) + 1
-#adjust bin number and size if not sufficient
-while n_side_x*n_side_r<n_lipid_inner:
+try:
+   cell_inner = sqrt(r_inner*2.0*pi*Lx/float(n_lipid_inner))
+   n_side_x = int(Lx/cell_inner) + 1
+   print "n_side_x = %d for inner lipid" %n_side_x
+   n_side_r = int(2.0*pi*r_inner/cell_inner) + 1
+   #adjust bin number and size if not sufficient
+   while n_side_x*n_side_r<n_lipid_inner:
       n_side_x+=1
       n_side_r+=1
+except ZeroDivisionError:
+   n_side_x=0
+   n_side_r=0
 
 print "n_side_x = %d" %n_side_x
 print "n_side_r = %d" %n_side_r
 
 #now, place lipids in the inner leaflet
-delphi = 2.0*pi/float(n_side_r)
-delx = Lx/float(n_side_x)
+try:
+  delphi = 2.0*pi/float(n_side_r)
+  delx = Lx/float(n_side_x)
+except ZeroDivisionError:
+  delphi=0.0
+  delx=0.0
 
 icount=0
 
@@ -397,18 +414,26 @@ for j in range(0,n_type_lipid):
     print>>topfile, "%-5s  %d   " %(ok_data[j][3][0][0],ok_data[j][2])
 
 #determine the lattice size
-cell_outer = sqrt(r_outer*2.0*pi*Lx/float(n_lipid_outer))
-n_side_x = int(Lx/cell_outer) + 1
-print "n_side_x = %d for outer lipid" %n_side_x
-n_side_r = int(2.0*pi*r_outer/cell_outer) + 1
-#adjust bin number and size if not sufficient
-while n_side_x*n_side_r<n_lipid_outer:
+try:
+  cell_outer = sqrt(r_outer*2.0*pi*Lx/float(n_lipid_outer))
+  n_side_x = int(Lx/cell_outer) + 1
+  print "n_side_x = %d for outer lipid" %n_side_x
+  n_side_r = int(2.0*pi*r_outer/cell_outer) + 1
+  #adjust bin number and size if not sufficient
+  while n_side_x*n_side_r<n_lipid_outer:
       n_side_x+=1
       n_side_r+=1
+except ZeroDivisionError:
+  n_side_x=0
+  n_side_r=0
 
 #now, place lipids in the outer leaflet
-delphi = 2.0*pi/float(n_side_r)
-delx = Lx/float(n_side_x)
+try:
+  delphi = 2.0*pi/float(n_side_r)
+  delx = Lx/float(n_side_x)
+except ZeroDivisionError:
+  delphi=0.0
+  delx=0.0
 
 icount=0
 
@@ -721,7 +746,48 @@ if cap_bool:
 #       print>>topfile, "%-5s  %d    ; %d" %(ok_data[j][3][0][0],len(r_head[j]),count_res)
        print>>topfile, "%-5s  %d    " %(ok_data[j][3][0][0],len(r_head[j]))
 
+   # add water inside the cap
+   nwater_cap=0
+   x_min = -r_inner + d_water
+   y_min = -r_inner + d_water
+   z_min = -r_inner + d_water
+   
+   x_max = r_inner - d_water
+   y_max = r_inner - d_water
+   z_max = r_inner - d_water
 
+   xxx = x_min
+   while xxx<x_max:
+         yyy = y_min
+         while yyy<y_max:
+               zzz = z_min
+               while zzz<z_max:
+                     if in_the_cap(xxx,yyy,zzz,r_inner-d_water):
+                        nwater_cap+=1
+                        res_num+=1
+                        atm_num+=1
+                        atm_name='W'
+                        resname='W'
+                        #gromacs only allow 5 digits for residue number and atom number
+                        res_num_print=res_num%100000
+                        atm_num_print=atm_num%100000
+                        xw = xxx
+                        if xxx > 0.0:
+                           xw+=Lx
+                        print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+                        %(res_num_print,resname,atm_name,atm_num_print,xw,yyy,zzz)
+                        print>>h, "%s %f %f %f" %(atm_name, xw*10.0,yyy*10.0,zzz*10.0)
+
+                     zzz+=d_water
+ 
+               yyy+=d_water
+      
+         xxx+=d_water
+
+   # print to top
+   count_res+=nwater_cap
+   print>>topfile, "%-5s  %d    " %('W',nwater_cap)
+ 
 # increase r_outer by 0.5 nm to avoid steric clash with lipid
 r_outer+=0.5 
 
