@@ -92,8 +92,9 @@ if 'Y' in protein_args or 'y' in protein_args:
    if n_protein_type>0:
       for i in range(0,n_protein_type):
           pdb_name=raw_input("Protein %d  PDB name:" %(i+1))
-          protein_percent=float("Protein %d molar percentage:" %(i+1))
-          protein_data.append([pdb_name,protein_percent]) 
+          protein_percent=float(raw_input("Protein %d molar percentage:" %(i+1)))
+          protein_name=raw_input("Protein %d residue name: " %(i+1))
+          protein_data.append([pdb_name,protein_percent,protein_name]) 
           total_protein_percent+=protein_percent
    else:
       print "Error! The number of protein type must be greater than zero"
@@ -169,19 +170,6 @@ print>>f,"\n"
 n_inner=int(4.0*pi*r*r/surf_area)*2
 n_outer=int(4.0*pi*R*R/surf_area)*2
 
-n_lipid_total = n_inner + n_outer
-try:
-   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent)
-except ZeroDivisionError:
-   print "It seems there is no lipids, but only proteins, check your input"
-   exit()
-
-# number of proteins
-if protein_bool:
-   for i in range(0,len(protein_data)):
-       n_ph = int(float(n_mol_total)*protein_data[i][1])
-       protein_data[i].append(n_ph)      
- 
 # read lipid pdb files
 for item in lipid_list:
     temp_data=[]
@@ -211,29 +199,6 @@ for item in lipid_list:
 
     item.extend([temp_data,n_inner_i,n_outer_i])
    
-# read protein pdb files
-for item in protein_data:
-    temp_data=[]
-    coord=[]
-    with open(item[0],'r') as pdb:
-             for line in pdb:
-                 if line[0:4]=='ATOM':
-                    resname = line[17:21]
-                    args = line.split()
-                    atm_index = int(args[1])
-                    atm_name = args[2]
-                    xxx = float(args[5])  
-                    yyy = float(args[6])  
-                    zzz = float(args[7])
-                    coord.append([xxx*0.1,yyy*0.1,zzz*0.1]) 
-                    temp_data.append([resname,atm_index,atm_name,xxx*0.1,yyy*0.1,zzz*0.1])
-
-    # find minmax in the protein PDB file    
-    coord=np.array(coord)
-    rmin=np.amin(coord,axis=0)
-    rmax=np.amax(coord,axis=0) 
-    item.extend([temp_data,rmin,rmax])
-
 # initialize residue number and atom number
 count_res=0
 res_num=0
@@ -379,8 +344,10 @@ for i in range(0,n_type_lipid):
             print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
  
 # print to top
+n_inner_real=0
 for j in range(0,n_type_lipid):
     count_res+=len(r_head[j])
+    n_inner_real+=len(r_head[j])
     print>>topfile, "%-5s  %d    " %(lipid_list[j][2][0][0],len(r_head[j]))
 
 
@@ -482,8 +449,188 @@ for i in range(0,n_type_lipid):
             print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
  
 # print to top
+n_outer_real=0
 for j in range(0,n_type_lipid):
     count_res+=len(r_head[j])
+    n_outer_real+=len(r_head[j])
     print>>topfile, "%-5s  %d    " %(lipid_list[j][2][0][0],len(r_head[j]))
+
+n_lipid_total = n_inner_real + n_outer_real
+try:
+   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent)
+except ZeroDivisionError:
+   print "It seems there is no lipids, but only proteins, check your input"
+   exit()
+
+# number of proteins
+n_ph_list=[]
+n_protein_total=0
+if protein_bool:
+   for i in range(0,len(protein_data)):
+       n_ph = int(float(n_mol_total)*protein_data[i][1])
+       protein_data[i].append(n_ph)  
+       n_ph_list.append(n_ph)
+
+   n_ph_min = min(n_ph_list)
+   n_protein_total = sum(n_ph_list)
+   for i in range(0,len(protein_data)):
+       n_ratio=int(protein_data[i][3]/n_ph_min)     # number of protein ratio for mixing proteins
+       protein_data[i].append(n_ratio)
+     
+ 
+# read protein pdb files
+radii_list=[]
+max_radii=0.0
+if protein_bool:
+   for item in protein_data:
+       temp_data=[]
+       coord=[]
+       with open(item[0],'r') as pdb:
+             for line in pdb:
+                 if line[0:4]=='ATOM':
+                    resname = line[17:21]
+                    args = line.split()
+                    atm_index = int(args[1])
+                    atm_name = args[2]
+                    xxx = float(args[5])  
+                    yyy = float(args[6])  
+                    zzz = float(args[7])
+                    coord.append([xxx*0.1,yyy*0.1,zzz*0.1]) 
+                    temp_data.append([resname,atm_index,atm_name,xxx*0.1,yyy*0.1,zzz*0.1])
+
+       # find minmax in the protein PDB file   
+       # then shift coordinates in the PDB file 
+       coord=np.array(coord)
+       rmin=np.amin(coord,axis=0)
+       rmax=np.amax(coord,axis=0)
+       r_center = (rmax+rmin)/2.0       # such arithmetic operations can be taken only for np arrays
+       for atm_piece in temp_data:
+           atm_piece[3]-=r_center[0] 
+           atm_piece[4]-=r_center[1] 
+           atm_piece[5]-=r_center[2]
+       # get the estimated radius of the protein
+       min_max = (rmax - rmin)/2.0
+       radii_protein = np.amax(min_max) 
+       radii_list.append(radii_protein) 
+       item.extend([temp_data,radii_protein])
+
+   max_radii=max(radii_list)
+
+# Till now we have finished constructed the protein_data list
+# For each element in protein_data list, here are the meaning of each component
+#     0: PDB file name
+#     1: Protein molar percentage
+#     2: Protein name (residue name in the top file)
+#     3: n_ph, the esitmated number of proteins of given species 
+#     4: n_ratio, the nonzero integer representing the ratio between different protein types
+#     5: temp_data, the detailed PDB information (coordinates and etc.) 
+#     6: protein radius
+ 
+# place protein on the surface of vesicle
+if protein_bool:
+   r_ca = R + max_radii  # vesicle radii + protein radii
+   # recalculate surface area
+   surf_area = 4.0*pi*r_ca*r_ca/n_protein_total
+   edge_len = sqrt(surf_area)
+   if edge_len>max_radii*2.0:
+      print "Warning! The edge length is greater than the max diameter of protein"
+   circ_sphere = 2.0*pi*r_ca
+   num_vertices = int(round(circ_sphere/edge_len,0))
+   reduced_edge_len = circ_sphere/num_vertices
+   angle_between_vertices = 2.0*pi/num_vertices
+   vertex_height = reduced_edge_len*sqrt(3.0)/2.0 
+   num_heights = int(round(circ_sphere/vertex_height,0))
+   angle_edge_vertex = 2.0*pi/num_heights  
+
+   print "angle_edge_vertex = %f " %(angle_edge_vertex/pi*180.0)
+
+   #construct a list that index the order of placing lipid
+   n_type_protein = len(protein_data)
+   protein_index = []
+
+   icount=0
+   iprotein=[0]*n_type_protein
+
+   while icount<n_protein_total*2:            # multiply by 2 to ensure there are enough grids to cover the sphere
+      for j in range(0,n_type_protein):
+          for k in range(0,protein_data[j][4]):            # protein ratio number
+              if iprotein[j]<protein_list[j][3]:             # estimated protein number,multiplied by 2
+                 protein_index.append(j)
+                 icount+=1
+                 iprotein[j]+=1
+
+
+   icount=0
+
+   # new algorithm to mix proteins uniformly
+
+   r_head=[ [] for i in range(0,n_type_protein) ]
+
+   # theta 
+   theta = 0.0
+   while theta < pi:
+         current_circle_rad = r_ca*abs(sin(theta))
+         circ_current_circle = 2.0*pi*current_circle_rad
+         current_num_vertices = int(round(circ_current_circle/edge_len,0))
+         try:
+             current_angle_between_vertices = 2.0*pi/current_num_vertices
+
+             # phi
+             phi = current_angle_between_vertices/2.0
+             while phi < 2.0*pi:
+                   xxx_head, yyy_head, zzz_head = spherical2cartesian(r_ca, theta, phi)   
+
+                   itype_protein = protein_index[icount]
+                   r_head[itype_protein].append([xxx_head,yyy_head,zzz_head,theta,phi])
+                   icount+=1
+  
+                   phi += current_angle_between_vertices
+         except ZeroDivisionError:
+             phi = 0.0 
+             xxx_head, yyy_head, zzz_head = spherical2cartesian(R, theta, phi)   
+             itype_protein = protein_index[icount]
+             r_head[itype_protein].append([xxx_head,yyy_head,zzz_head,theta,phi])
+             icount+=1
+
+         theta += angle_edge_vertex
+ 
+        
+   for i in range(0,n_type_protein):
+       for item in r_head[i]:
+           xxx_head=item[0]
+           yyy_head=item[1]
+           zzz_head=item[2]
+           theta=item[3]
+           phi=item[4]
+           n_atm_pdb = len(protein_data[i][5])
+           resname_pre=''
+           for k in range(0,n_atm_pdb):
+               xxx_old = protein_list[i][5][k][3] 
+               yyy_old = protein_list[i][5][k][4]
+               zzz_old = protein_list[i][5][k][5]
+ 
+               # we don't have to rotate the molecule as we did for lipids
+               xxx = xxx_old + xxx_head
+               yyy = yyy_old + yyy_head
+               zzz = zzz_old + zzz_head
+
+               atm_num+=1
+               resname = protein_list[i][5][k][0]
+               if resname!=resname_pre:    # for protein the residue number is still determined from the amino acid residue
+                  res_num+=1
+               atm_name = protein_list[i][2][k][2]
+               #gromacs only allow 5 digits for residue number and atom number
+               res_num_print=res_num%100000
+               atm_num_print=atm_num%100000
+               #print it to the gro file 
+               print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+               %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+               print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
+               resname_pre = resname
+ 
+   # print to top
+   for j in range(0,n_type_protein):
+       count_res+=len(r_head[j])
+       print>>topfile, "%-5s  %d    " %(protein_data[j][2],len(r_head[j]))
 
 f.close()
