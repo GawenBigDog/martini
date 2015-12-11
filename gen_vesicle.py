@@ -7,20 +7,15 @@ import math
 from math import pi,sin,cos,sqrt,acos,atan2
 
 import numpy as np
-from numpy import random
+
+import scipy
+from scipy.spatial.distance import pdist, squareform
 
 def spherical2cartesian(r, theta, phi):
   x = r*sin(theta)*cos(phi)
   y = r*sin(theta)*sin(phi)
   z = r*cos(theta)
   return [x, y, z]
-
-def z2x(r):
-    x = r[2]   # x = z0
-    y = r[0]   # y = x0
-    z = r[1]   # z = x0
-    r = [x,y,z]
-    return r
 
 def invertvector(r):
     x = -1.0*r[0]
@@ -62,7 +57,34 @@ def in_the_sphere(x,y,z,r_pore):
   
     return bol_p
 
-d_bead = 0.3    # diameter of water bead: 0.47 nm
+# function decide whether water collide with protein
+def not_in_protein(x,y,z,r_head,protein_bool,r_ca,R):
+    bol_pt=True
+    radii=(r_ca - R)/2.0     # radii of protein
+    if protein_bool==False:     # no protein
+       bol_pt=True
+    else:
+       r = sqrt(x*x + y*y + z*z)
+       if r>r_ca:          # outside the sphere of protein
+          bol_pt=True
+       elif r<R:
+          bol_pt=False
+       else:
+          # examine distance between water and protein centers
+          # using KDtree
+          coord = np.array([x,y,z])
+          r_head = np.array(r_head)
+          mytree = scipy.spatial.KDTree(r_head)
+          min_dist, near_id = mytree.query(coord)
+          if min_dist<radii:
+             bol_pt=False
+          else:
+             bol_pt=True
+ 
+    return bol_pt 
+
+
+d_bead = 0.3    # diameter of water bead: 0.47 nm, here use squeezed value to make more compact membrane
 lipid_len = d_bead*7.0 + 0.1   # for current lipids, the longest length is 0.47*7 nm 
 
 f = open('vesicle_par.txt','w')
@@ -75,9 +97,9 @@ L=float(raw_input("Length of box in unit of nm, must be greater than twice of ve
 
 c_salt=float(raw_input("salt concentration in unit of mol/L: "))
 
-protein_args = raw_input("With protein  or not? (Y/N)")
+protein_args = raw_input("With protein  or not? (Y/N): ")
 
-water_arg = raw_input("With water or not? (Y/N)")
+water_arg = raw_input("With water or not? (Y/N): ")
 
 water_bool=True
 if 'N' in water_arg or 'n' in water_arg:
@@ -96,6 +118,9 @@ if 'Y' in protein_args or 'y' in protein_args:
           protein_name=raw_input("Protein %d residue name: " %(i+1))
           protein_data.append([pdb_name,protein_percent,protein_name]) 
           total_protein_percent+=protein_percent
+          if total_protein_percent>1.0:
+             print "Error! The protein molar percentage must be less than 1!"
+             exit()
    else:
       print "Error! The number of protein type must be greater than zero"
       exit()
@@ -170,6 +195,9 @@ print>>f,"\n"
 n_inner=int(4.0*pi*r*r/surf_area)*2
 n_outer=int(4.0*pi*R*R/surf_area)*2
 
+print "n_inner = %d" %n_inner
+print "n_outer = %d" %n_outer
+
 # read lipid pdb files
 for item in lipid_list:
     temp_data=[]
@@ -198,7 +226,41 @@ for item in lipid_list:
                     temp_data.append([resname,atm_index,atm_name,xxx*0.1,yyy*0.1,zzz*0.1])
 
     item.extend([temp_data,n_inner_i,n_outer_i])
-   
+
+# Till now we have finished constructed the lipid_list list
+# For each element in lipid_list list, here are the meaning of each component
+#     0: PDB file name
+#     1: Lipid integer  molar ratio
+#     2: temp_data, the detailed PDB information (coordinates and etc.) 
+#     3: estimated inner layer number for building vesicle
+#     4: estimated outer layer number for building vesicle
+ 
+n_tot=0   
+#open the output gro file
+g = open('vesicle.gro','w')         
+print>>g, "VESICLE"
+print>>g, "%d" %n_tot     # This need to be modified by hand after finishing running the script
+#open an xyz file for test
+h = open("test.xyz",'w')
+print>>h, "%d" %n_tot
+print>>h, "test"
+
+# write the top file
+topfile = open("vesicle.top",'w')
+header='''#include "martini_v2.0.itp"
+#include "martini_v2.0_lipids.itp"
+#include "martini_v2.0_DPGS_24.itp"
+#include "martini_v2.0_ions.itp"
+#include "martini_chol_hinge_p30.itp"
+#include "protein.itp"
+
+[ system ]
+vesicle
+
+[ molecules ]'''
+count_res=0
+print>>topfile, "%s" %header
+
 # initialize residue number and atom number
 count_res=0
 res_num=0
@@ -206,6 +268,7 @@ atm_num=0
 
 # put water inside the vesicle
 if water_bool:
+   print "Start putting water inside the vesicle..."
    nwater_inner=0       # reset the inner water number
    x_min = -r + d_water
    y_min = -r + d_water
@@ -245,6 +308,9 @@ if water_bool:
    print>>topfile, "%-5s  %d    " %('W',nwater_inner)
    
 # set up the inner layer of the vesicle
+# via building equilateral triangle geodeisic dome
+
+print "Start building the inner layer of vesicle..."
 
 circ_sphere = 2.0*pi*r
 num_vertices = int(round(circ_sphere/edge_len,0))
@@ -260,8 +326,16 @@ print "angle_edge_vertex = %f " %(angle_edge_vertex/pi*180.0)
 n_type_lipid = len(lipid_list)
 lipid_index = []
 
+print "n_type_lipid = %d" %n_type_lipid
+
 icount=0
 ilipid=[0]*n_type_lipid
+
+# recompute n_inner to avoid infinite loop while 
+# constructing index list
+n_inner=0
+for j in range(0,n_type_lipid):
+    n_inner+=lipid_list[j][3]
 
 while icount<n_inner:
       for j in range(0,n_type_lipid):
@@ -271,6 +345,7 @@ while icount<n_inner:
                  icount+=1
                  ilipid[j]+=1
 
+print "Finish constructing index list"
 
 icount=0
 
@@ -305,7 +380,8 @@ while theta < pi:
              icount+=1
 
       theta += angle_edge_vertex
- 
+
+print "Finish generating r_head" 
         
 for i in range(0,n_type_lipid):
     for item in r_head[i]:
@@ -352,6 +428,7 @@ for j in range(0,n_type_lipid):
 
 
 # set up the outer layer of the vesicle
+print "Start building the outer layer of vesicle.."
 
 circ_sphere = 2.0*pi*R
 num_vertices = int(round(circ_sphere/edge_len,0))
@@ -370,6 +447,12 @@ lipid_index = []
 icount=0
 ilipid=[0]*n_type_lipid
 
+# recompute n_outer to avoid infinite loop while 
+# constructing index list
+n_outer=0
+for j in range(0,n_type_lipid):
+    n_outer+=lipid_list[j][4]
+
 while icount<n_outer:
       for j in range(0,n_type_lipid):
           for k in range(0,lipid_list[j][1]):            # lipid ratio number
@@ -378,6 +461,7 @@ while icount<n_outer:
                  icount+=1
                  ilipid[j]+=1
 
+print "Finish constructing index list"
 
 icount=0
 
@@ -413,6 +497,7 @@ while theta < pi:
 
       theta += angle_edge_vertex
  
+print "Finish generating r_head" 
         
 for i in range(0,n_type_lipid):
     for item in r_head[i]:
@@ -457,7 +542,7 @@ for j in range(0,n_type_lipid):
 
 n_lipid_total = n_inner_real + n_outer_real
 try:
-   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent)
+   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent))
 except ZeroDivisionError:
    print "It seems there is no lipids, but only proteins, check your input"
    exit()
@@ -482,6 +567,7 @@ if protein_bool:
 radii_list=[]
 max_radii=0.0
 if protein_bool:
+   print "Start reading protein PDB file..."
    for item in protein_data:
        temp_data=[]
        coord=[]
@@ -527,7 +613,9 @@ if protein_bool:
 #     6: protein radius
  
 # place protein on the surface of vesicle
+r_ca=0.0
 if protein_bool:
+   print "Start placing proteins at the surface of the vesicle"
    r_ca = R + max_radii  # vesicle radii + protein radii
    # recalculate surface area
    surf_area = 4.0*pi*r_ca*r_ca/n_protein_total
@@ -552,12 +640,12 @@ if protein_bool:
    iprotein=[0]*n_type_protein
 
    while icount<n_protein_total*2:            # multiply by 2 to ensure there are enough grids to cover the sphere
-      for j in range(0,n_type_protein):
-          for k in range(0,protein_data[j][4]):            # protein ratio number
-              if iprotein[j]<protein_list[j][3]:             # estimated protein number,multiplied by 2
-                 protein_index.append(j)
-                 icount+=1
-                 iprotein[j]+=1
+         for j in range(0,n_type_protein):
+             for k in range(0,protein_data[j][4]):            # protein ratio number
+                 if iprotein[j]<protein_data[j][3]*2:             # estimated protein number,multiplied by 2
+                    protein_index.append(j)
+                    icount+=1
+                    iprotein[j]+=1
 
 
    icount=0
@@ -581,15 +669,17 @@ if protein_bool:
                    xxx_head, yyy_head, zzz_head = spherical2cartesian(r_ca, theta, phi)   
 
                    itype_protein = protein_index[icount]
-                   r_head[itype_protein].append([xxx_head,yyy_head,zzz_head,theta,phi])
+                   # we didn't append theta and phi here because protein orientation is not important here
+                   r_head[itype_protein].append([xxx_head,yyy_head,zzz_head])
                    icount+=1
   
                    phi += current_angle_between_vertices
          except ZeroDivisionError:
              phi = 0.0 
-             xxx_head, yyy_head, zzz_head = spherical2cartesian(R, theta, phi)   
+             xxx_head, yyy_head, zzz_head = spherical2cartesian(r_ca, theta, phi)   
              itype_protein = protein_index[icount]
-             r_head[itype_protein].append([xxx_head,yyy_head,zzz_head,theta,phi])
+             # we didn't append theta and phi here because protein orientation is not important here
+             r_head[itype_protein].append([xxx_head,yyy_head,zzz_head])
              icount+=1
 
          theta += angle_edge_vertex
@@ -600,14 +690,12 @@ if protein_bool:
            xxx_head=item[0]
            yyy_head=item[1]
            zzz_head=item[2]
-           theta=item[3]
-           phi=item[4]
            n_atm_pdb = len(protein_data[i][5])
            resname_pre=''
            for k in range(0,n_atm_pdb):
-               xxx_old = protein_list[i][5][k][3] 
-               yyy_old = protein_list[i][5][k][4]
-               zzz_old = protein_list[i][5][k][5]
+               xxx_old = protein_data[i][5][k][3] 
+               yyy_old = protein_data[i][5][k][4]
+               zzz_old = protein_data[i][5][k][5]
  
                # we don't have to rotate the molecule as we did for lipids
                xxx = xxx_old + xxx_head
@@ -615,10 +703,10 @@ if protein_bool:
                zzz = zzz_old + zzz_head
 
                atm_num+=1
-               resname = protein_list[i][5][k][0]
+               resname = protein_data[i][5][k][0]
                if resname!=resname_pre:    # for protein the residue number is still determined from the amino acid residue
                   res_num+=1
-               atm_name = protein_list[i][2][k][2]
+               atm_name = protein_data[i][5][k][2]
                #gromacs only allow 5 digits for residue number and atom number
                res_num_print=res_num%100000
                atm_num_print=atm_num%100000
@@ -633,4 +721,62 @@ if protein_bool:
        count_res+=len(r_head[j])
        print>>topfile, "%-5s  %d    " %(protein_data[j][2],len(r_head[j]))
 
+# put water and ions outside the vesicle
+if water_bool:
+   print "Start generating water outside the vesicle"
+   nwater_outer=0       # reset the outer water number
+   icount=0
+   x_min = -L/2.0 
+   y_min = -L/2.0
+   z_min = -L/2.0
+   
+   x_max = L/2.0 
+   y_max = L/2.0
+   z_max = L/2.0
+
+   xxx = x_min
+   while xxx<x_max:
+         yyy = y_min
+         while yyy<y_max:
+               zzz = z_min
+               while zzz<z_max:
+                     if (not in_the_sphere(xxx,yyy,zzz,R+d_water)) \
+                        and not_in_protein(xxx,yyy,zzz,r_head,protein_bool,r_ca+max_radii,R+d_water):
+                        icount+=1
+                        res_num+=1
+                        atm_num+=1
+                        if icount<=n_na:
+                           resname='NA+'
+                           atm_name='NA+'
+                        elif icount>n_na and icount<=(n_na+n_cl):   
+                           resname='CL-'
+                           atm_name='CL-'
+                        else:  
+                           nwater_outer+=1
+                           atm_name='W'
+                           resname='W'
+                        #gromacs only allow 5 digits for residue number and atom number
+                        res_num_print=res_num%100000
+                        atm_num_print=atm_num%100000
+                        print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+                        %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+                        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
+
+                     zzz+=d_water
+ 
+               yyy+=d_water
+      
+         xxx+=d_water
+
+   # print to top
+   count_res+=nwater_outer
+   print>>topfile, "%-5s  %d    " %('W',nwater_outer)
+
+#write lattice vector
+print>>g, "%9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f %9.5f" \
+          %(L,L,L,0.0,0.0,0.0,0.0,0.0,0.0)
+
 f.close()
+g.close()
+h.close()
+topfile.close()
