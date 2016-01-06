@@ -96,6 +96,7 @@ R = float(raw_input("Vesicle Radius, in unit of nm, should be larger than %.3f n
 L=float(raw_input("Length of box in unit of nm, must be greater than twice of vesicle radius: "))
 
 c_salt=float(raw_input("salt concentration in unit of mol/L: "))
+print>>f, "Salt concentration: %f mol/L" %c_salt
 
 protein_args = raw_input("With protein  or not? (Y/N): ")
 
@@ -114,7 +115,9 @@ if 'Y' in protein_args or 'y' in protein_args:
    if n_protein_type>0:
       for i in range(0,n_protein_type):
           pdb_name=raw_input("Protein %d  PDB name:" %(i+1))
+          print>>f, "Protein PDB name: %s" %pdb_name
           protein_percent=float(raw_input("Protein %d molar percentage:" %(i+1)))
+          print>>f, "Protein molar percentage: %f" %protein_percent
           protein_name=raw_input("Protein %d residue name: " %(i+1))
           protein_data.append([pdb_name,protein_percent,protein_name]) 
           total_protein_percent+=protein_percent
@@ -237,7 +240,7 @@ for item in lipid_list:
  
 n_tot=0   
 #open the output gro file
-g = open('vesicle.gro','w')         
+g = open('vesicle_embed.gro','w')         
 print>>g, "VESICLE"
 print>>g, "%d" %n_tot     # This need to be modified by hand after finishing running the script
 #open an xyz file for test
@@ -246,8 +249,11 @@ print>>h, "%d" %n_tot
 print>>h, "test"
 
 # write the top file
-topfile = open("vesicle.top",'w')
-header='''#include "martini_v2.0.itp"
+topfile = open("vesicle_embed.top",'w')
+
+# include different itp files depending on whether using dry martini or not
+if water_bool:
+   header='''#include "martini_v2.0.itp"
 #include "martini_v2.0_lipids.itp"
 #include "martini_v2.0_DPGS_24.itp"
 #include "martini_v2.0_ions.itp"
@@ -258,6 +264,19 @@ header='''#include "martini_v2.0.itp"
 vesicle
 
 [ molecules ]'''
+else:
+   header='''#include "dry_martini_v2.1.itp"
+#include "dry_martini_v2.1_lipids.itp"
+#include "dry_martini_DPGS_24.itp"
+#include "dry_martini_v2.1_ions.itp"
+#include "dry_martini_v2.1_cholesterol.itp"
+#include "protein.itp"
+
+[ system ]
+vesicle
+
+[ molecules ]'''
+
 count_res=0
 print>>topfile, "%s" %header
 
@@ -387,7 +406,7 @@ n_inner_real = icount
 
 # save theta and phi information for the future
 d_theta_inner = angle_edge_vertex
-d_phi_innner = current_angle_between_vertices
+d_phi_inner = current_angle_between_vertices
 
 print "Finish generating r_head_inner" 
         
@@ -661,10 +680,28 @@ if protein_bool:
                   phi_p = atan2(yyy,xxx)
                   if phi_p<0.0:
                      phi_p += 2.0*pi 
-                  itheta_p = round(theta_p/d_theta_inner,0)
-                  iphi_p = round(phi_p/d_phi_inner,0)
+                  itheta_p = int(round(theta_p/d_theta_inner,0))
+                  iphi_p = int(round(phi_p/d_phi_inner,0))
+                  # the algorithm above is a little buggy and may have index overflow
+                  if iphi_p>len(r_head_inner[itheta_p])-1:
+#                     print "Inner"
+#                     print "theta_p = %f degree" %(theta_p/pi*180.0)
+#                     print "itheta_p = %d" %itheta_p
+#                     print "phi_p = %f degree" %(phi_p/pi*180.0)
+#                     print "iphi_p = %d" %iphi_p
+#                     print "To prevent index over flow, iphi_p will be changed to: %d " %(len(r_head_inner[itheta_p])-1)
+                     iphi_p = len(r_head_inner[itheta_p]) -1
                   # mute this lipid
-                  r_head_inner[itheta_p][iphi_p][6]=False 
+                  try:
+                     r_head_inner[itheta_p][iphi_p][6]=False 
+                  except IndexError:
+                     print "Inner"
+                     print "theta_p = %f degree" %(theta_p/pi*180.0)
+                     print "itheta_p = %d" %itheta_p
+                     print "phi_p = %f degree" %(phi_p/pi*180.0)
+                     print "iphi_p = %d" %iphi_p
+                     print "Error! Index overflow!"
+                     exit() 
                    
                # if the atom is in the outer layer
                elif rrr<= R+0.47 and rrr >= (r+R)/2.0:
@@ -673,10 +710,28 @@ if protein_bool:
                   phi_p = atan2(yyy,xxx)
                   if phi_p<0.0:
                      phi_p += 2.0*pi 
-                  itheta_p = round(theta_p/d_theta_outer,0)
-                  iphi_p = round(phi_p/d_phi_outer,0)
+                  itheta_p = int(round(theta_p/d_theta_outer,0))
+                  iphi_p = int(round(phi_p/d_phi_outer,0))
+                  # the algorithm above is a little buggy and may have index overflow
+                  if iphi_p>len(r_head_outer[itheta_p])-1:
+#                     print "Outer"
+#                     print "theta_p = %f degree" %(theta_p/pi*180.0)
+#                     print "itheta_p = %d" %itheta_p
+#                     print "phi_p = %f degree" %(phi_p/pi*180.0)
+#                     print "iphi_p = %d" %iphi_p
+#                     print "To prevent index over flow, iphi_p will be changed to: %d" %(len(r_head_outer[itheta_p])-1)
+                     iphi_p = len(r_head_outer[itheta_p]) -1
                   # mute this lipid
-                  r_head_outer[itheta_p][iphi_p][6]=False 
+                  try:
+                     r_head_outer[itheta_p][iphi_p][6]=False
+                  except IndexError:
+                     print "Outer"
+                     print "theta_p = %f degree" %(theta_p/pi*180.0)
+                     print "itheta_p = %d" %itheta_p
+                     print "phi_p = %f degree" %(phi_p/pi*180.0)
+                     print "iphi_p = %d" %iphi_p
+                     print "Error! Index overflow!"
+                     exit() 
                    
                atm_num+=1
                resname = protein_data[i][5][k][0]
@@ -709,7 +764,7 @@ if protein_bool:
 # sort inner layer lipid according to their types
 # for the convience of writing top file
  
-inner_data=[ [] for i in range(0,n_lipid_type) ]
+inner_data=[ [] for i in range(0,n_type_lipid) ]
  
 for item in r_head_inner:
     for rh in item:
@@ -766,7 +821,7 @@ for j in range(0,n_type_lipid):
 # sort outer layer lipid according to their types
 # for the convience of writing top file
  
-outer_data=[ [] for i in range(0,n_lipid_type) ]
+outer_data=[ [] for i in range(0,n_type_lipid) ]
  
 for item in r_head_outer:
     for rh in item:
