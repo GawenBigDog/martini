@@ -178,7 +178,10 @@ n_avgadro = 6.02e23
 # volume of the box in unit of m^3
 V_box = L*L*L*1.0e-27
 
-n_salt = c_salt*1.0e3*V_box*n_avgadro
+if c_salt>=0.0:
+   n_salt = c_salt*1.0e3*V_box*n_avgadro
+else:
+   n_salt=0
 
 n_na = int(n_salt)
 n_cl = int(n_salt)
@@ -280,6 +283,13 @@ vesicle
 count_res=0
 print>>topfile, "%s" %header
 
+# dictionary for automatic charge determination
+# copied from insane.py
+charges = {"ARG":1, "LYS":1, "ASP":-1, "GLU":-1, "DOPG":-1, "POPG":-1, "DOPS":-1, "POPS":-1, "DSSQ":-1}
+
+# accumulate total charge
+chg_tot = 0 
+
 # initialize residue number and atom number
 count_res=0
 res_num=0
@@ -339,6 +349,8 @@ vertex_height = reduced_edge_len*sqrt(3.0)/2.0
 num_heights = int(round(circ_sphere/vertex_height,0))
 angle_edge_vertex = 2.0*pi/num_heights  
 
+# save delta_phi for future usage
+d_phi_inner=[]
 print "angle_edge_vertex = %f " %(angle_edge_vertex/pi*180.0)
 
 #construct a list that index the order of placing lipid
@@ -379,6 +391,7 @@ while theta < pi:
       current_num_vertices = int(round(circ_current_circle/edge_len,0))
       try:
           current_angle_between_vertices = 2.0*pi/current_num_vertices
+          d_phi_inner.append(current_angle_between_vertices)
 
           # phi
           phi = current_angle_between_vertices/2.0
@@ -393,7 +406,8 @@ while theta < pi:
                 phi += current_angle_between_vertices
                 iphi+=1
       except ZeroDivisionError:
-             phi = 0.0 
+             phi = 0.0
+             d_phi_inner.append(2.0*pi) 
              xxx_head, yyy_head, zzz_head = spherical2cartesian(r, theta, phi)   
              itype_lipid = lipid_index[icount]
              r_head_inner[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
@@ -406,7 +420,7 @@ n_inner_real = icount
 
 # save theta and phi information for the future
 d_theta_inner = angle_edge_vertex
-d_phi_inner = current_angle_between_vertices
+edge_len_inner = edge_len 
 
 print "Finish generating r_head_inner" 
         
@@ -423,6 +437,9 @@ num_heights = int(round(circ_sphere/vertex_height,0))
 angle_edge_vertex = 2.0*pi/num_heights  
 
 print "angle_edge_vertex = %f " %(angle_edge_vertex/pi*180.0)
+
+# save delta_phi for future usage
+d_phi_outer=[]
 
 #construct a list that index the order of placing lipid
 n_type_lipid = len(lipid_list)
@@ -460,6 +477,7 @@ while theta < pi:
       current_num_vertices = int(round(circ_current_circle/edge_len,0))
       try:
           current_angle_between_vertices = 2.0*pi/current_num_vertices
+          d_phi_outer.append(current_angle_between_vertices)
 
           # phi
           phi = current_angle_between_vertices/2.0
@@ -474,7 +492,8 @@ while theta < pi:
                 phi += current_angle_between_vertices
                 iphi+=1
       except ZeroDivisionError:
-             phi = 0.0 
+             phi = 0.0
+             d_phi_outer.append(2.0*pi) 
              xxx_head, yyy_head, zzz_head = spherical2cartesian(R, theta, phi)   
              itype_lipid = lipid_index[icount]
              r_head_outer[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
@@ -486,7 +505,7 @@ while theta < pi:
 n_outer_real = icount
 # save theta and phi information for the future
 d_theta_outer = angle_edge_vertex
-d_phi_outer = current_angle_between_vertices
+edge_len_outer = edge_len 
 
 
  
@@ -501,11 +520,30 @@ print "Number of lipids in outer layer before placing proteins: %d" %n_outer_rea
 # haven't been dug from the vesicle
 
 n_lipid_total = n_inner_real + n_outer_real
-try:
-   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent))
-except ZeroDivisionError:
-   print "It seems there is no lipids, but only proteins, check your input"
-   exit()
+#try:
+#   n_mol_total = int(float(n_lipid_total)/(1.0 - total_protein_percent))
+#except ZeroDivisionError:
+#   print "It seems there is no lipids, but only proteins, check your input"
+#   exit()
+
+# now we try an approximate way to estimate the number of protein
+# in this case, we assume the protein radius is 3 nm, which is 
+# roughly the size of PLP protein
+
+r_pro = 3.5
+# the number of lipid in a whole of protein size
+# multiply by 2 because it's bilayer
+n_hole = int(pi*r_pro*r_pro/surf_area*2.0)
+print "n_hole = %d " %n_hole
+print "n_lipid_total = %d" %n_lipid_total
+# solve the equation below to obtain the total number of proteins
+# (n_lipid_total + n_protein_total - n_hole*n_protein_total)*total_protein_percent = n_protein_total
+# n_mol_total = n_lipid_total + n_protein_total - n_hole*n_protein_total
+n_p_total = int(float(n_lipid_total)*total_protein_percent/(1.0 - total_protein_percent \
+                   + total_protein_percent*float(n_hole))) 
+n_mol_total = n_p_total + n_lipid_total - n_hole*n_p_total 
+
+print "n_mol_total = %d" %n_mol_total
 
 # number of proteins
 n_ph_list=[]
@@ -581,8 +619,11 @@ if protein_bool:
    # recalculate surface area
    surf_area = 4.0*pi*r_ca*r_ca/n_protein_total
    edge_len = sqrt(surf_area)
-   if edge_len>max_radii*2.0:
-      print "Warning! The edge length is greater than the max diameter of protein"
+   if edge_len<max_radii*2.0:
+      print "Warning! The edge length is smaller than the max diameter of protein"
+      print "edge_len = %f" %edge_len
+      print "max diameter = %f" %(max_radii*2.0)
+
    circ_sphere = 2.0*pi*r_ca
    num_vertices = int(round(circ_sphere/edge_len,0))
    reduced_edge_len = circ_sphere/num_vertices
@@ -625,7 +666,7 @@ if protein_bool:
              current_angle_between_vertices = 2.0*pi/current_num_vertices
 
              # phi
-             phi = current_angle_between_vertices/2.0
+             phi = current_angle_between_vertices/2.0 
              while phi < 2.0*pi:
                    xxx_head, yyy_head, zzz_head = spherical2cartesian(r_ca, theta, phi)   
 
@@ -681,7 +722,12 @@ if protein_bool:
                   if phi_p<0.0:
                      phi_p += 2.0*pi 
                   itheta_p = int(round(theta_p/d_theta_inner,0))
-                  iphi_p = int(round(phi_p/d_phi_inner,0))
+                  # prevent index over flow
+                  if itheta_p>=len(r_head_inner):
+                     itheta_p = len(r_head_inner) - 1
+               #    itheta_p = int(theta_p/d_theta_inner)
+                  iphi_p = int(round(phi_p/d_phi_inner[itheta_p]-0.5,0))
+               #    iphi_p = int(phi_p/d_phi_inner)
                   # the algorithm above is a little buggy and may have index overflow
                   if iphi_p>len(r_head_inner[itheta_p])-1:
 #                     print "Inner"
@@ -711,7 +757,11 @@ if protein_bool:
                   if phi_p<0.0:
                      phi_p += 2.0*pi 
                   itheta_p = int(round(theta_p/d_theta_outer,0))
-                  iphi_p = int(round(phi_p/d_phi_outer,0))
+                  # prevent index over flow
+                  if itheta_p>=len(r_head_outer):
+                     itheta_p = len(r_head_outer) - 1
+               #    itheta_p = int(theta_p/d_theta_outer)
+                  iphi_p = int(round(phi_p/d_phi_outer[itheta_p]-0.5,0))
                   # the algorithm above is a little buggy and may have index overflow
                   if iphi_p>len(r_head_outer[itheta_p])-1:
 #                     print "Outer"
@@ -737,6 +787,9 @@ if protein_bool:
                resname = protein_data[i][5][k][0]
                if resname!=resname_pre:    # for protein the residue number is still determined from the amino acid residue
                   res_num+=1
+                  if resname.strip() in charges.keys():
+                     chg_tot += charges.get(resname.strip())
+
                atm_name = protein_data[i][5][k][2]
                #gromacs only allow 5 digits for residue number and atom number
                res_num_print=res_num%100000
@@ -783,7 +836,10 @@ for i in range(0,n_type_lipid):
         theta=item[3]
         phi=item[4]
         n_atm_pdb = len(lipid_list[i][2])
-        res_num+=1 
+        res_num+=1
+        resname = lipid_list[i][2][0][0] 
+        if resname.strip() in charges.keys():
+           chg_tot += charges.get(resname.strip())
         for k in range(0,n_atm_pdb):
             xxx_old = lipid_list[i][2][k][3] 
             yyy_old = lipid_list[i][2][k][4]
@@ -840,6 +896,9 @@ for i in range(0,n_type_lipid):
         phi=item[4]
         n_atm_pdb = len(lipid_list[i][2])
         res_num+=1
+        resname = lipid_list[i][2][0][0] 
+        if resname.strip() in charges.keys():
+           chg_tot += charges.get(resname.strip())
         for k in range(0,n_atm_pdb):
             xxx_old = lipid_list[i][2][k][3] 
             yyy_old = lipid_list[i][2][k][4]
@@ -875,54 +934,77 @@ for j in range(0,n_type_lipid):
 print "Number of lipids in inner layer after placing proteins: %d" %n_inner_real
 print "Number of lipids in outer layer after placing proteins: %d" %n_outer_real
 
-# put water and ions outside the vesicle
-if water_bool:
-   print "Start generating water outside the vesicle"
-   nwater_outer=0       # reset the outer water number
-   icount=0
-   x_min = -L/2.0 
-   y_min = -L/2.0
-   z_min = -L/2.0
-   
-   x_max = L/2.0 
-   y_max = L/2.0
-   z_max = L/2.0
+print "The net charge in the system is: %d" %chg_tot
+print "Will add ions to neutralize it"
 
-   xxx = x_min
-   while xxx<x_max:
-         yyy = y_min
-         while yyy<y_max:
-               zzz = z_min
-               while zzz<z_max:
-                     if (not in_the_sphere(xxx,yyy,zzz,R+d_water)) \
-                        and not_in_protein(xxx,yyy,zzz,r_head,protein_bool,r_ca+max_radii,R+d_water):
-                        icount+=1
-                        res_num+=1
-                        atm_num+=1
-                        if icount<=n_na:
-                           resname='NA+'
-                           atm_name='NA+'
-                        elif icount>n_na and icount<=(n_na+n_cl):   
-                           resname='CL-'
-                           atm_name='CL-'
-                        else:  
+if chg_tot>0:
+   n_cl += chg_tot
+else:
+   n_na -= chg_tot
+
+# truncate element in r_head for usage below
+#for item in r_head:
+#    for piece in item:
+#        del piece[-1]
+#        del piece[-1]
+    
+# put water and ions outside the vesicle
+print "Start generating water outside the vesicle"
+nwater_outer=0       # reset the outer water number
+icount=0
+x_min = -L/2.0 
+y_min = -L/2.0
+z_min = -L/2.0
+   
+x_max = L/2.0 
+y_max = L/2.0
+z_max = L/2.0
+
+xxx = x_min
+Rmax=max(R+d_water,r_ca+max_radii)
+while xxx<x_max:
+      yyy = y_min
+      while yyy<y_max:
+            zzz = z_min
+            while zzz<z_max:
+                  if not in_the_sphere(xxx,yyy,zzz,Rmax):
+                     icount+=1
+                     res_num+=1
+                     atm_num+=1
+                     if icount<=n_na:
+                        resname='NA+'
+                        atm_name='NA+'
+                     elif icount>n_na and icount<=(n_na+n_cl):   
+                        resname='CL-'
+                        atm_name='CL-'
+                     else: 
+                        if water_bool: 
                            nwater_outer+=1
                            atm_name='W'
                            resname='W'
-                        #gromacs only allow 5 digits for residue number and atom number
-                        res_num_print=res_num%100000
-                        atm_num_print=atm_num%100000
-                        print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
-                        %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
-                        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
+                        else:
+                           break
+                     #gromacs only allow 5 digits for residue number and atom number
+                     res_num_print=res_num%100000
+                     atm_num_print=atm_num%100000
+                     print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+                     %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+                     print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
 
-                     zzz+=d_water
+                  zzz+=d_water
  
-               yyy+=d_water
+            yyy+=d_water
       
-         xxx+=d_water
+      xxx+=d_water
 
-   # print to top
+# print to top
+count_res+=n_na
+if n_na>0:
+   print>>topfile, "%-5s  %d  " %('NA+',n_na)
+count_res+=n_cl
+if n_cl>0:
+   print>>topfile, "%-5s  %d  " %('CL-',n_cl)
+if water_bool:
    count_res+=nwater_outer
    print>>topfile, "%-5s  %d    " %('W',nwater_outer)
 
