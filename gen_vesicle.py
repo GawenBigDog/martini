@@ -620,8 +620,13 @@ if protein_bool:
    # recalculate surface area
    surf_area = 4.0*pi*r_ca*r_ca/n_protein_total
    edge_len = sqrt(surf_area)
-   if edge_len>max_radii*2.0:
-      print "Warning! The edge length is greater than the max diameter of protein"
+   if edge_len<max_radii*2.0:
+      print "Warning! The edge length is less than the max diameter of protein"
+      print "edge_len = %f " %edge_len
+      print "diameter = %f " %(2.0*max_radii)
+      print "Change edge_len to max diameter"
+      edge_len = max_radii*2.0
+
    circ_sphere = 2.0*pi*r_ca
    num_vertices = int(round(circ_sphere/edge_len,0))
    reduced_edge_len = circ_sphere/num_vertices

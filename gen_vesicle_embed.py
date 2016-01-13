@@ -623,6 +623,8 @@ if protein_bool:
       print "Warning! The edge length is smaller than the max diameter of protein"
       print "edge_len = %f" %edge_len
       print "max diameter = %f" %(max_radii*2.0)
+      print "Change edge_len to max diameter"
+      edge_len = max_radii*2.0
 
    circ_sphere = 2.0*pi*r_ca
    num_vertices = int(round(circ_sphere/edge_len,0))
