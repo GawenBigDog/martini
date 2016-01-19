@@ -55,6 +55,22 @@ POPE=[
 ('C5B',[0.5,0.0,-7.0]), 
 ]
 
+POPG=[
+('GL0',[0.0,0.0,0.0]),
+('PO4',[0.0,0.0,-1.0]),
+('GL1',[0.5,0.0,-2.0]),
+('GL2',[-0.5,0.0,-2.0]),
+('C1A',[-0.5,0.0,-3.0]),
+('C2A',[-0.5,0.0,-4.0]),
+('C3A',[-0.5,0.0,-5.0]),
+('C4A',[-0.5,0.0,-6.0]), 
+('C1B',[0.5,0.0,-3.0]),
+('C2B',[0.5,0.0,-4.0]),
+('D3B',[0.5,0.0,-5.0]),
+('C4B',[0.5,0.0,-6.0]), 
+('C5B',[0.5,0.0,-7.0]), 
+]
+
 CHOL=[
 ('ROH',[0.0,0.0,0.0]),
 ('R1',[0.0,0.0,-1.0]),
@@ -104,6 +120,22 @@ print>>f, "CRYST1   30.000   30.000   30.000  90.00  90.00  90.00 P 1           
 res_name="POPE"
 iatm=0
 for item in POPE:
+    iatm+=1
+    atm_name=item[0]
+    xxx = item[1][0]*sigma
+    yyy = item[1][1]*sigma
+    zzz = item[1][2]*sigma
+    print>>f, "%-6s%5d %4s%1s%4s%1s%4d%1s   %8.3f%8.3f%8.3f%6.2f%6.2f" \
+           %("ATOM",iatm,atm_name,"",res_name,"",1,"",xxx,yyy,zzz,0.0,0.0)
+
+print>>f, "END"
+f.close()
+
+f=open('POPG_lattice.pdb','w')
+print>>f, "CRYST1   30.000   30.000   30.000  90.00  90.00  90.00 P 1           1"
+res_name="POPG"
+iatm=0
+for item in POPG:
     iatm+=1
     atm_name=item[0]
     xxx = item[1][0]*sigma

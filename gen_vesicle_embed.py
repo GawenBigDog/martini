@@ -141,11 +141,15 @@ DPPC_ratio=int(raw_input("DPPC ratio (must be an integer): "))
 if DPPC_ratio>0:
    lipid_list.append(["DPPC_lattice.pdb",DPPC_ratio])
 
+POPG_ratio=int(raw_input("POPG ratio (must be an integer): "))
+if POPG_ratio>0:
+   lipid_list.append(["POPG_lattice.pdb",POPG_ratio])
+
 CHOL_ratio=int(raw_input("CHOL ratio (must be an integer): "))
 if CHOL_ratio>0:
    lipid_list.append(["CHOL_lattice.pdb",CHOL_ratio])
 
-tt_ratio = DPGS_ratio + POPE_ratio + DPPC_ratio + CHOL_ratio
+tt_ratio = DPGS_ratio + POPE_ratio + DPPC_ratio + CHOL_ratio + POPG_ratio
 
 while L/2.0<=R:
       print "Twice radius is %f" %(2.0*R)
