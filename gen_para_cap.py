@@ -34,6 +34,7 @@ cap_args = raw_input("With cap or not? (Y/N)")
 
 DPGS_ratio=int(raw_input("DPGS ratio (must be an integer): "))
 POPE_ratio=int(raw_input("POPE ratio (must be an integer): "))
+POPG_ratio=int(raw_input("POPG ratio (must be an integer): "))
 DPPC_ratio=int(raw_input("DPPC ratio (must be an integer): "))
 CHOL_ratio=int(raw_input("CHOL ratio (must be an integer): "))
 
@@ -148,7 +149,7 @@ print>>f,"\n"
 
 # start writing the input parameter part
 
-tt_ratio = DPGS_ratio + POPE_ratio + DPPC_ratio + CHOL_ratio
+tt_ratio = DPGS_ratio + POPE_ratio + DPPC_ratio + CHOL_ratio + POPG_ratio
 
 #DPGS
 pdbname='DPGS_lattice.pdb'
@@ -168,6 +169,15 @@ n_i_c = n_inner_cap/tt_ratio*POPE_ratio
 n_o_c = n_outer_cap/tt_ratio*POPE_ratio
 if POPE_ratio>0:
    print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,POPE_ratio)
+
+#POPG
+pdbname='POPG_lattice.pdb'
+n_i = n_inner/tt_ratio*POPG_ratio
+n_o = n_outer/tt_ratio*POPG_ratio
+n_i_c = n_inner_cap/tt_ratio*POPG_ratio
+n_o_c = n_outer_cap/tt_ratio*POPG_ratio
+if POPG_ratio>0:
+   print>>f, "%-20s %5d %5d %5d %5d %5d" %(pdbname,n_i,n_o,n_o_c,n_i_c,POPG_ratio)
 
 #CHOL
 pdbname='CHOL_lattice.pdb'

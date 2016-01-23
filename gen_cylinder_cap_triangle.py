@@ -166,6 +166,13 @@ print>>topfile, "%s" %header
 res_num=0
 atm_num=0
 
+# dictionary for automatic charge determination
+# copied from insane.py
+charges = {"ARG":1, "LYS":1, "ASP":-1, "GLU":-1, "DOPG":-1, "POPG":-1, "DOPS":-1, "POPS":-1, "DSSQ":-1}
+
+# accumulate total charge
+chg_tot = 0 
+
 
 #read each pdb file
 ok_data=[]
@@ -347,6 +354,9 @@ for i in range(0,n_type_lipid):
         phi=item[3]+pi/2.0
         n_atm_pdb = len(ok_data[i][3])
         res_num+=1
+        resname = ok_data[i][3][0][0] 
+        if resname.strip() in charges.keys():
+           chg_tot += charges.get(resname.strip())
         for k in range(0,n_atm_pdb):
             #shift origin
             xxx = ok_data[i][3][k][3] + xxx_head
@@ -461,6 +471,9 @@ for i in range(0,n_type_lipid):
         phi=item[3]+1.5*pi
         n_atm_pdb = len(ok_data[i][3])
         res_num+=1
+        resname = ok_data[i][3][0][0] 
+        if resname.strip() in charges.keys():
+           chg_tot += charges.get(resname.strip())
         for k in range(0,n_atm_pdb):
             #shift origin
             xxx = ok_data[i][3][k][3] + xxx_head
@@ -589,6 +602,9 @@ if cap_bool:
            phi=item[4]
            n_atm_pdb = len(ok_data[i][3])
            res_num+=1
+           resname = ok_data[i][3][0][0] 
+           if resname.strip() in charges.keys():
+              chg_tot += charges.get(resname.strip())
            for k in range(0,n_atm_pdb):
                xxx_old = ok_data[i][3][k][3] 
                yyy_old = ok_data[i][3][k][4]
@@ -712,6 +728,9 @@ if cap_bool:
            phi=item[4]
            n_atm_pdb = len(ok_data[i][3])
            res_num+=1
+           resname = ok_data[i][3][0][0] 
+           if resname.strip() in charges.keys():
+              chg_tot += charges.get(resname.strip())
            for k in range(0,n_atm_pdb):
                xxx_old = ok_data[i][3][k][3] 
                yyy_old = ok_data[i][3][k][4]
@@ -850,6 +869,14 @@ if Lz!=Lz_old:
    print "Lz updated to %f" %Lz 
               
           
+print "The net charge in the system is: %d" %chg_tot
+print "Will add ions to neutralize it"
+
+if chg_tot>0:
+   nCl += chg_tot
+else:
+   nNa -= chg_tot
+
 # place sodium and chloride in the box
 # in the same way as water
 iwater=0
