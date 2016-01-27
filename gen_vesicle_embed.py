@@ -577,6 +577,7 @@ if protein_bool:
              for line in pdb:
                  if line[0:4]=='ATOM':
                     resname = line[17:21]
+                    resnumber = int(line[22:26])
                     args = line.split()
                     atm_index = int(args[1])
                     atm_name = args[2]
@@ -584,7 +585,7 @@ if protein_bool:
                     yyy = float(args[6])  
                     zzz = float(args[7])
                     coord.append([xxx*0.1,yyy*0.1,zzz*0.1]) 
-                    temp_data.append([resname,atm_index,atm_name,xxx*0.1,yyy*0.1,zzz*0.1])
+                    temp_data.append([resname,atm_index,atm_name,xxx*0.1,yyy*0.1,zzz*0.1,resnumber])
 
        # find minmax in the protein PDB file   
        # then shift coordinates in the PDB file 
@@ -701,7 +702,7 @@ if protein_bool:
            theta=item[3]
            phi=item[4]
            n_atm_pdb = len(protein_data[i][5])
-           resname_pre=''
+           resnumber_pre=0
            for k in range(0,n_atm_pdb):
                xxx_old = protein_data[i][5][k][3] 
                yyy_old = protein_data[i][5][k][4]
@@ -791,7 +792,8 @@ if protein_bool:
                    
                atm_num+=1
                resname = protein_data[i][5][k][0]
-               if resname!=resname_pre:    # for protein the residue number is still determined from the amino acid residue
+               resnumber = protein_data[i][5][k][6]
+               if resnumber!=resnumber_pre:    # for protein the residue number is still determined from the amino acid residue
                   res_num+=1
                   if resname.strip() in charges.keys():
                      chg_tot += charges.get(resname.strip())
@@ -804,7 +806,7 @@ if protein_bool:
                print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
                %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
                print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
-               resname_pre = resname
+               resnumber_pre = resnumber
  
    # print to top
    for j in range(0,n_type_protein):
