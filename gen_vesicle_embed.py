@@ -260,7 +260,7 @@ topfile = open("vesicle_embed.top",'w')
 
 # include different itp files depending on whether using dry martini or not
 if water_bool:
-   header='''#include "martini_v2.0.itp"
+   header='''#include "martini_v2.1.itp"
 #include "martini_v2.0_lipids.itp"
 #include "martini_v2.0_DPGS_24.itp"
 #include "martini_v2.0_ions.itp"
@@ -299,47 +299,6 @@ count_res=0
 res_num=0
 atm_num=0
 
-# put water inside the vesicle
-if water_bool:
-   print "Start putting water inside the vesicle..."
-   nwater_inner=0       # reset the inner water number
-   x_min = -r + d_water
-   y_min = -r + d_water
-   z_min = -r + d_water
-   
-   x_max = r - d_water
-   y_max = r - d_water
-   z_max = r - d_water
-
-   xxx = x_min
-   while xxx<x_max:
-         yyy = y_min
-         while yyy<y_max:
-               zzz = z_min
-               while zzz<z_max:
-                     if in_the_sphere(xxx,yyy,zzz,r-d_water):
-                        nwater_inner+=1
-                        res_num+=1
-                        atm_num+=1
-                        atm_name='W'
-                        resname='W'
-                        #gromacs only allow 5 digits for residue number and atom number
-                        res_num_print=res_num%100000
-                        atm_num_print=atm_num%100000
-                        print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
-                        %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
-                        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
-
-                     zzz+=d_water
- 
-               yyy+=d_water
-      
-         xxx+=d_water
-
-   # print to top
-   count_res+=nwater_inner
-   print>>topfile, "%-5s  %d    " %('W',nwater_inner)
-   
 # set up the inner layer of the vesicle
 # via building equilateral triangle geodeisic dome
 
@@ -617,6 +576,7 @@ if protein_bool:
  
 # place protein in the vesicle
 r_ca=0.0
+pw_list=[]
 if protein_bool:
    print "Start placing proteins in the vesicle"
    # place protein center at the center of the vesicle bilayer
@@ -789,7 +749,20 @@ if protein_bool:
                      print "iphi_p = %d" %iphi_p
                      print "Error! Index overflow!"
                      exit() 
-                   
+               
+               # added for explicit solvent simulation only
+               # remove water inside the vesicle that collide with protein
+               if water_bool and rrr <= r :
+                  x_min = -r + d_water
+                  y_min = -r + d_water
+                  z_min = -r + d_water
+
+                  ix = int(round((xxx - x_min)/d_water))
+                  iy = int(round((yyy - y_min)/d_water))
+                  iz = int(round((zzz - z_min)/d_water))
+                  pw_list.append([ix,iy,iz])
+
+ 
                atm_num+=1
                resname = protein_data[i][5][k][0]
                resnumber = protein_data[i][5][k][6]
@@ -956,6 +929,54 @@ else:
 #        del piece[-1]
 #        del piece[-1]
     
+# put water inside the vesicle
+if water_bool:
+   print "Start putting water inside the vesicle..."
+   nwater_inner=0       # reset the inner water number
+   x_min = -r + d_water
+   y_min = -r + d_water
+   z_min = -r + d_water
+   
+   x_max = r - d_water
+   y_max = r - d_water
+   z_max = r - d_water
+
+   xxx = x_min
+   ix = 0
+   while xxx<x_max:
+         yyy = y_min
+         iy = 0
+         while yyy<y_max:
+               zzz = z_min
+               iz = 0
+               while zzz<z_max:
+                     if in_the_sphere(xxx,yyy,zzz,r-d_water) and \
+                        [ix,iy,iz] not in pw_list:
+                        nwater_inner+=1
+                        res_num+=1
+                        atm_num+=1
+                        atm_name='W'
+                        resname='W'
+                        #gromacs only allow 5 digits for residue number and atom number
+                        res_num_print=res_num%100000
+                        atm_num_print=atm_num%100000
+                        print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
+                        %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
+                        print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
+
+                     zzz+=d_water
+                     iz+=1
+ 
+               yyy+=d_water
+               iy+=1
+      
+         xxx+=d_water
+         ix+=1
+
+   # print to top
+   count_res+=nwater_inner
+   print>>topfile, "%-5s  %d    " %('W',nwater_inner)
+   
 # put water and ions outside the vesicle
 print "Start generating water outside the vesicle"
 nwater_outer=0       # reset the outer water number
