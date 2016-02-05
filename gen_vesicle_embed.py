@@ -9,7 +9,7 @@ from math import pi,sin,cos,sqrt,acos,atan2
 import numpy as np
 
 import scipy
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist, squareform, cdist
 
 def spherical2cartesian(r, theta, phi):
   x = r*sin(theta)*cos(phi)
@@ -83,6 +83,22 @@ def not_in_protein(x,y,z,r_head,protein_bool,r_ca,R):
  
     return bol_pt 
 
+# function decide whether given point is around certain points on the sphere 
+def  wh_around(rp,r,tol):
+     refpoints=np.array([[-r,0.0,0.0],[r,0.0,0.0],[0.0,-r,0.0],[0.0,r,0.0],[0.0,0.0,-r],[0.0,0.0,r]])
+     # convert given point to np array
+     # note the square bracket here, this is necessary to keep dimension consistency in distance calculation
+     rp = np.array([rp])
+     dp = cdist(rp, refpoints, 'euclidean')
+     # flat to 1-D array
+     dp = dp.flatten()
+     is_around = False
+     for item in dp:
+         if item<tol:
+            is_around=True
+     
+     return is_around 
+                   
 
 d_bead = 0.3    # diameter of water bead: 0.47 nm, here use squeezed value to make more compact membrane
 lipid_len = d_bead*7.0 + 0.1   # for current lipids, the longest length is 0.47*7 nm 
@@ -363,7 +379,17 @@ while theta < pi:
                 xxx_head, yyy_head, zzz_head = spherical2cartesian(r, theta, phi)   
 
                 itype_lipid = lipid_index[icount]
-                r_head_inner[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
+                # imitate the case in charmm-gui martini vesicle builder
+                # open several wholes on the lipid to allow water to exchange
+                if water_bool:
+                   # the whole radius is 0.8 nm
+                   tol = 0.8
+                   if wh_around([xxx_head,yyy_head,zzz_head],r,tol):
+                      r_head_inner[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,False])
+                   else:
+                      r_head_inner[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
+                else:
+                      r_head_inner[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
                 icount+=1
 
                 phi += current_angle_between_vertices
@@ -449,7 +475,17 @@ while theta < pi:
                 xxx_head, yyy_head, zzz_head = spherical2cartesian(R, theta, phi)   
 
                 itype_lipid = lipid_index[icount]
-                r_head_outer[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
+                # imitate the case in charmm-gui martini vesicle builder
+                # open several wholes on the lipid to allow water to exchange
+                if water_bool:
+                   # the whole radius is 0.6 nm
+                   tol = 0.8 
+                   if wh_around([xxx_head,yyy_head,zzz_head],R,tol):
+                      r_head_outer[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,False])
+                   else:
+                      r_head_outer[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
+                else:
+                      r_head_outer[itheta].append([xxx_head,yyy_head,zzz_head,theta,phi,itype_lipid,True])
                 icount+=1
 
                 phi += current_angle_between_vertices
