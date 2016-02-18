@@ -21,6 +21,7 @@ from scipy.spatial.distance import pdist, squareform
 tol_bool=False
 p_bool=False
 inputname = sys.argv[1]    # gro file name
+
 if sys.argv[2]=="-t":
    tolerance = float(sys.argv[3])  # pairs with distance less than tolerance will be shown
    tol_bool=True

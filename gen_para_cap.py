@@ -32,6 +32,8 @@ water_thickness = float(raw_input("water thickness on one side of the tube in un
 
 cap_args = raw_input("With cap or not? (Y/N)")
 
+protein_args= raw_input("With PLP protein or not? (Y/N)")
+
 DPGS_ratio=int(raw_input("DPGS ratio (must be an integer): "))
 POPE_ratio=int(raw_input("POPE ratio (must be an integer): "))
 POPG_ratio=int(raw_input("POPG ratio (must be an integer): "))
@@ -44,7 +46,15 @@ if 'Y' in cap_args or 'y' in cap_args:
 elif 'N' in cap_args or 'n' in cap_args:
    cap_bool=False
 
+protein_bool=False
+if 'Y' in protein_args or 'y' in protein_args:
+   protein_bool=True
+elif 'N' in protein_args or 'n' in protein_args:
+   protein_bool=False
 
+if protein_bool:
+   protein_percent = float(raw_input("PLP Protein Percentage: ")) 
+   
 while Lz/2.0<=R:
       print "Twice radius is %f" %(2.0*R)
       print "Lz must be greater than this value"
@@ -212,5 +222,7 @@ print>>f,"nbinphi_cap_outer  %d" %nbinphi_cap_outer
 print>>f,"nbintheta_cap_inner  %d" %nbintheta_cap_inner
 print>>f,"nbinphi_cap_inner  %d" %nbinphi_cap_inner
 print>>f, "water_thickness %.5f" %water_thickness
+if protein_bool:
+   print>>f, "protein  PLP_martini.pdb  PROA_P  %.5f"  %(protein_percent)
 
 f.close() 
