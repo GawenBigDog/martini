@@ -1050,6 +1050,8 @@ if cap_bool:
                   # put the positive half sphere to the other size of the tube
                   if zzz_head>0.0:
                      xxx+=Lx
+#                  else:    # set a short distance between cap and tube to prevent steric clash
+#                     xxx-=0.5
                   #print it to the gro file 
                   print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
                   %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
@@ -1123,6 +1125,8 @@ if cap_bool:
                # put the positive half sphere to the other size of the tube
                if zzz_head>0.0:
                   xxx+=Lx
+#               else:    # set a short distance between cap and tube to prevent steric clash
+#                  xxx-=0.5
                #print it to the gro file 
                print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
                %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
@@ -1185,6 +1189,8 @@ if cap_bool:
                # put the positive half sphere to the other size of the tube
                if zzz_head>0.0:
                   xxx+=Lx
+#               else:    # set a short distance between cap and tube to prevent steric clash
+#                  xxx-=0.5
                #print it to the gro file 
                print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
                %(res_num_print,resname,atm_name,atm_num_print,xxx,yyy,zzz)
@@ -1240,15 +1246,15 @@ if cap_bool:
                         res_num_print=res_num%100000
                         atm_num_print=atm_num%100000
                         # since we place the cylinder axis along the x-axis
-                        xxx,yyy,zzz = z2x([xxx,yyy,zzz])
+                        x_print,y_print,z_print = z2x([xxx,yyy,zzz])
                         # put the positive half sphere to the other size of the tube
-                        if xxx>0.0:
-                           x_print=xxx+Lx
+                        if x_print>0.0:
+                           x_print=x_print+Lx
                         else:
-                           x_print=xxx
+                           x_print=x_print 
                         print>>g, "%5d%-5s%5s%5d%8.3f%8.3f%8.3f" \
-                        %(res_num_print,resname,atm_name,atm_num_print,x_print,yyy,zzz)
-                        print>>h, "%s %f %f %f" %(atm_name, x_print*10.0,yyy*10.0,zzz*10.0)
+                        %(res_num_print,resname,atm_name,atm_num_print,x_print,y_print,z_print)
+                        print>>h, "%s %f %f %f" %(atm_name, x_print*10.0,y_print*10.0,z_print*10.0)
 
                      zzz+=d_water
                      iz+=1
