@@ -29,8 +29,8 @@ def reservoir_sample(list_out,list_in,n_sample):
 
     # remove items that has been selected
     # this is not used since it's too slow
-    list_in = [ item for i,item in enumerate(list_in) if i not in list_out_index]  
-    return list_out,list_in
+    #list_in = [ item for i,item in enumerate(list_in) if i not in list_out_index]  
+    return list_out,list_out_index
         
 
 def spherical2cartesian(r, theta, phi):
@@ -987,7 +987,7 @@ for ibinx in range(0,wbin_x):
 
 na_site=[]
 # random pick out sites for sodium
-na_site,solvent_site = reservoir_sample(na_site,solvent_site,n_na)
+na_site,na_site_index = reservoir_sample(na_site,solvent_site,n_na)
 
 for item in na_site:
 #    solvent_site.remove(item)
@@ -1011,7 +1011,7 @@ for item in na_site:
 
 cl_site=[]
 # random pick out sites for sodium
-cl_site,solvent_site = reservoir_sample(cl_site,solvent_site,n_cl)
+cl_site,cl_site_index = reservoir_sample(cl_site,solvent_site,n_cl)
 
 for item in cl_site:
 #    solvent_site.remove(item)
@@ -1034,7 +1034,16 @@ for item in cl_site:
     print>>h, "%s %f %f %f" %(atm_name, xxx*10.0,yyy*10.0,zzz*10.0)
 
 # water
-for item in solvent_site:
+solvent_site_bool=[True for i in range(0,len(solvent_site)) ]
+# mask Na and Cl sites 
+for item in na_site_index:
+    solvent_site_bool[item] = False
+
+for item in cl_site_index:
+    solvent_site_bool[item] = False
+
+for i,item in enumerate(solvent_site):
+  if solvent_site_bool[i]:
     ibinx=item[0]
     ibiny=item[1]
     ibinz=item[2]
@@ -1061,7 +1070,7 @@ if n_na>0:
 count_res+=n_cl
 if n_cl>0:
    print>>topfile, "%-5s  %d  " %('CL-',n_cl)
-nwater_out = len(solvent_site)
+nwater_outer = len(solvent_site) - len(na_site) - len(cl_site)
 count_res+=nwater_outer
 print>>topfile, "%-5s  %d    " %('W',nwater_outer)
 
